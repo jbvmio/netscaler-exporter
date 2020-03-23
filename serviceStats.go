@@ -64,7 +64,7 @@ func processSvcStats(P *Pool, wg *sync.WaitGroup) {
 			if success, ok := s.(bool); ok {
 				switch {
 				case success:
-					go TK.set(P.nsInstance, servicesSubsystem, time.Now().Unix()*1000)
+					go TK.set(P.nsInstance, servicesSubsystem, time.Now().Unix())
 				default:
 					exporterFailuresTotal.WithLabelValues(P.nsInstance, servicesSubsystem).Inc()
 				}

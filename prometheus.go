@@ -35,13 +35,13 @@ var (
 			Namespace: namespace,
 			Subsystem: exporterSubsystem,
 			Name:      `scrape_lag`,
-			Help:      `The number of milliseconds between the subsystem metric collection and the metric scrape`,
+			Help:      `The number of seconds between the subsystem metric collection and the metric scrape`,
 		},
 		exporterLabels,
 	)
 	exporterScrapeLagDesc = prometheus.NewDesc(
 		namespace+`_`+exporterSubsystem+`_scrape_lag`,
-		`The number of milliseconds between the subsystem metric collection and the metric scrape`,
+		`The number of seconds between the subsystem metric collection and the metric scrape`,
 		exporterLabels,
 		nil,
 	)
@@ -58,7 +58,7 @@ func (e *exporter) Describe(ch chan<- *prometheus.Desc) {
 
 // Collect implements prometheus.Collector.
 func (e *exporter) Collect(ch chan<- prometheus.Metric) {
-	timeNow := time.Now().Unix() * 1000
+	timeNow := time.Now().Unix()
 	times := TK.retrieve()
 	for ins, sub := range times {
 		for s, T := range sub {
