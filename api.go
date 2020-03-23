@@ -58,12 +58,15 @@ func (a *API) stop(httpSrv *http.Server) {
 
 func makeProm() http.Handler {
 	prom := prometheus.NewRegistry()
+	e := newExporter()
+	prom.MustRegister(e)
 	prom.MustRegister(allPromCollectors...)
 	handleProm := promhttp.HandlerFor(prom, promhttp.HandlerOpts{})
 	return handleProm
 }
 
 var allPromCollectors = []prometheus.Collector{
+	exporterFailuresTotal,
 	servicesThroughput,
 	servicesAvgTTFB,
 	servicesState,

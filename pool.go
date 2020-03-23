@@ -3,7 +3,6 @@ package main
 import (
 	"container/ring"
 	"encoding/json"
-	"fmt"
 	"log"
 	"sync"
 	"time"
@@ -15,13 +14,12 @@ import (
 
 // Pool for exporting metrics for a lbserver.
 type Pool struct {
-	team       *work.Team
-	client     *netscaler.NitroClient
-	clientPool []*netscaler.NitroClient
-	poolIdx    *ring.Ring
-	poolLock   *sync.Mutex
-	poolWG     sync.WaitGroup
-	//metricsChan    chan bool
+	team           *work.Team
+	client         *netscaler.NitroClient
+	clientPool     []*netscaler.NitroClient
+	poolIdx        *ring.Ring
+	poolLock       *sync.Mutex
+	poolWG         sync.WaitGroup
 	metricHandlers map[string]metricHandleFunc
 	flipBit        collectBit
 	lbserver       LBServer
@@ -39,8 +37,7 @@ func newPool(lbs LBServer, metricsChan chan bool, logger *zap.Logger) *Pool {
 	conf.WorkerQueueSize = lbs.PoolWorkerQueue
 	team := work.NewTeam(conf)
 	pool := Pool{
-		team: team,
-		//metricsChan: metricsChan,
+		team:       team,
 		poolIdx:    ring.New(team.Config.Workers),
 		poolLock:   &sync.Mutex{},
 		poolWG:     sync.WaitGroup{},
@@ -91,10 +88,16 @@ func newPool(lbs LBServer, metricsChan chan bool, logger *zap.Logger) *Pool {
 	return &pool
 }
 
-func goCollectMetrics(metrics chan bool, wg *sync.WaitGroup) {
-	defer wg.Done()
-	for b := range metrics {
-		fmt.Println("Recieved", b)
+func (p *Pool) submit(request work.TaskRequest) bool {
+	switch {
+	case p.stopped:
+		if request.ResultChan() != nil {
+			request.ResultChan() <- false
+			close(request.ResultChan())
+		}
+		return false
+	default:
+		return p.team.Submit(request)
 	}
 }
 
@@ -155,11 +158,11 @@ func (p *Pool) nitroAPITask(req work.TaskRequest) {
 		p.logger.Debug("Sending MultiTargeted API Req - SHOULD NOT SEE!!", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow))
 		for _, t := range R.targets {
 			apiReq := newNitroAPIReq(netscaler.StatsType(R.nitroID), t)
-			p.team.Submit(apiReq)
+			p.submit(apiReq)
 			data := <-apiReq.ResultChan()
 			b := data.([]byte)
 			rawReq := newNitroRawReq(RawData(b))
-			p.team.Submit(rawReq)
+			p.submit(rawReq)
 			<-rawReq.ResultChan()
 		}
 		R.ResultChan() <- true
@@ -185,14 +188,14 @@ func (p *Pool) nitroRawTask(req work.TaskRequest) {
 		err := json.Unmarshal(data, &tmp)
 		if err != nil {
 			p.logger.Error("Recieved nitroRaw Task Error", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow), zap.Error(err))
-			R.ResultChan() <- true
+			R.ResultChan() <- false
 			close(R.ResultChan())
 			return
 		}
 		p.logger.Debug("Processed RawServiceStats", zap.String("TaskType", req.ReqType().String()), zap.Int("Number of Stats", len(stats)), zap.Int64("TaskTS", timeNow))
 		for _, s := range stats {
 			datReq := newNitroDataReq(s)
-			success := p.team.Submit(datReq)
+			success := p.submit(datReq)
 			p.logger.Debug("Sending nitroData Task", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow), zap.Bool("successful", success))
 		}
 	}
@@ -211,7 +214,7 @@ func (p *Pool) nitroDataTask(req work.TaskRequest) {
 		p.logger.Debug("Looking up Service VIP Name", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow), zap.String("Lookup", data.Name))
 		data.ServiceName = p.vipMap.getMapping(p.lbserver.URL, data.Name, p.logger)
 		promReq := newPromTask(data)
-		success := p.team.Submit(promReq)
+		success := p.submit(promReq)
 		p.logger.Debug("Sending nitroProm Task", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow), zap.Bool("successful", success))
 		if R.ResultChan() != nil {
 			close(R.ResultChan())

@@ -1,10 +1,11 @@
 package main
 
 import (
-	"log"
 	"sync"
+	"time"
 
 	"github.com/jbvmio/netscaler"
+	"go.uber.org/zap"
 )
 
 // RawServiceStats is the payload as returned by the Nitro API.
@@ -39,20 +40,36 @@ type ServiceStats struct {
 
 // NitroType implements the NitroData interface.
 func (s ServiceStats) NitroType() string {
-	return `service`
+	return servicesSubsystem
 }
 
 func processSvcStats(P *Pool, wg *sync.WaitGroup) {
 	if wg != nil {
 		defer wg.Done()
 	}
-	P.logger.Info("Processing Service Stats")
-	data, err := P.client.GetAll(netscaler.StatsTypeService)
-	if err != nil {
-		log.Fatalf("error retrieving data: %v\n", err)
+	switch {
+	case P.stopped:
+		P.logger.Info("Skipping Service Stats, process is stopping")
+	default:
+		P.logger.Info("Processing Service Stats")
+		data, err := P.client.GetAll(netscaler.StatsTypeService)
+		switch {
+		case err != nil:
+			P.logger.Error("error retrieving data for Service Stats", zap.Error(err))
+			exporterFailuresTotal.WithLabelValues(P.nsInstance, servicesSubsystem).Inc()
+		default:
+			req := newNitroRawReq(RawServiceStats(data))
+			P.team.Submit(req)
+			s := <-req.ResultChan()
+			if success, ok := s.(bool); ok {
+				switch {
+				case success:
+					go TK.set(P.nsInstance, servicesSubsystem, time.Now().Unix()*1000)
+				default:
+					exporterFailuresTotal.WithLabelValues(P.nsInstance, servicesSubsystem).Inc()
+				}
+			}
+			P.logger.Info("Service Stat Processing Complete")
+		}
 	}
-	req := newNitroRawReq(RawServiceStats(data))
-	P.team.Submit(req)
-	<-req.ResultChan()
-	P.logger.Info("Service Stat Processing Complete")
 }

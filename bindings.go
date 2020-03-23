@@ -8,23 +8,6 @@ import (
 	"github.com/jbvmio/work"
 )
 
-// CurState is the current state as returned by the Nitro API.
-type CurState string
-
-// Value returns the value mapping for the CurState.
-func (c CurState) Value() float64 {
-	switch c {
-	case `DOWN`:
-		return 0.0
-	case `UP`:
-		return 1.0
-	case `OUT OF SERVICE`:
-		return 2.0
-	default:
-		return 3.0
-	}
-}
-
 // SvcBind represents a service bind configuration.
 type SvcBind struct {
 	Name        string   `json:"name"`

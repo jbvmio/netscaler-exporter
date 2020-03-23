@@ -10,6 +10,11 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+const (
+	mappingSubsystem = "mapping"
+	backoffTime      = 3
+)
+
 // VIPMap contains mappings.
 type VIPMap struct {
 	mappings map[string]map[string]string
@@ -82,6 +87,7 @@ func collectMappings(P *Pool, wg *sync.WaitGroup) {
 	svcB, err := GetSvcBindings(P.client)
 	if err != nil {
 		P.logger.Error("error retrieving data", zap.Error(err))
+		exporterFailuresTotal.WithLabelValues(P.nsInstance, mappingSubsystem).Inc()
 		if P.mappingsLoaded {
 			return
 		}
@@ -93,13 +99,16 @@ func collectMappings(P *Pool, wg *sync.WaitGroup) {
 			P.logger.Info("Skipping Mapping Collection, process is stopping")
 			return
 		}
-		time.Sleep(time.Second * 3)
+		time.Sleep(time.Second * backoffTime)
 		P.logger.Info("Retrying Mapping Collection")
+		P.client.WithHTTPTimeout(time.Second * 120)
 		svcB, err = GetSvcBindings(P.client)
 		if err != nil {
 			P.logger.Error("error retrieving data", zap.Error(err))
+			exporterFailuresTotal.WithLabelValues(P.nsInstance, mappingSubsystem).Inc()
 		} else {
 			pr = true
+			P.client.WithHTTPTimeout(time.Second * 60)
 		}
 	}
 	tmpMap := make(map[string]string)

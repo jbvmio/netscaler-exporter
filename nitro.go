@@ -56,7 +56,7 @@ func defaultMetricHandleFunc(P *Pool, wg *sync.WaitGroup) {
 }
 
 var metricsMap = map[string]metricHandleFunc{
-	`service`: processSvcStats,
+	servicesSubsystem: processSvcStats,
 }
 
 func (p *Pool) collectMetrics(wg *sync.WaitGroup) {
@@ -77,5 +77,22 @@ func (p *Pool) collectMetrics(wg *sync.WaitGroup) {
 		p.poolWG.Wait()
 	default:
 		p.logger.Info(("metric collection already in progress"))
+	}
+}
+
+// CurState is the current state as returned by the Nitro API.
+type CurState string
+
+// Value returns the value mapping for the CurState.
+func (c CurState) Value() float64 {
+	switch c {
+	case `DOWN`:
+		return 0.0
+	case `UP`:
+		return 1.0
+	case `OUT OF SERVICE`:
+		return 2.0
+	default:
+		return 3.0
 	}
 }
