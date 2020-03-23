@@ -8,17 +8,19 @@ import (
 	"go.uber.org/zap"
 )
 
+// https://developer-docs.citrix.com/projects/netscaler-nitro-api/en/12.0/statistics/basic/service/service/
+
 const servicesSubsystem = "service"
 
 var (
 	servicesLabels = []string{netscalerInstance, `citrixadc_service_name`, `citrixadc_lb_name`}
 	// TODO - Convert megabytes to bytes
-	servicesThroughput = prometheus.NewCounterVec(
-		prometheus.CounterOpts{
+	servicesThroughput = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
 			Namespace: namespace,
 			Subsystem: servicesSubsystem,
-			Name:      "throughput_bytes_total",
-			Help:      "Number of bytes received or sent by this service",
+			Name:      "throughput_bytes",
+			Help:      "Number of bytes received or sent by this service (Mbps)",
 		},
 		servicesLabels,
 	)
@@ -157,7 +159,7 @@ var (
 		prometheus.GaugeOpts{
 			Namespace: namespace,
 			Subsystem: servicesSubsystem,
-			Name:      "vserver_service_hits_total",
+			Name:      "vserver_service_hits",
 			Help:      "Number of times that the service has been provided",
 		},
 		servicesLabels,
@@ -176,7 +178,7 @@ var (
 
 func (P *Pool) promSvcStats(ss ServiceStats) {
 	P.logger.Debug("recieved ServiceStat", zap.String("Received", fmt.Sprintf("%+v", ss)))
-	servicesThroughput.WithLabelValues(P.nsInstance, ss.Name, ss.ServiceName).Add(cast.ToFloat64(ss.Throughput))
+	servicesThroughput.WithLabelValues(P.nsInstance, ss.Name, ss.ServiceName).Set(cast.ToFloat64(ss.Throughput))
 	servicesAvgTTFB.WithLabelValues(P.nsInstance, ss.Name, ss.ServiceName).Set(cast.ToFloat64(ss.AvgTimeToFirstByte))
 	servicesState.WithLabelValues(P.nsInstance, ss.Name, ss.ServiceName).Set(ss.State.Value())
 	servicesTotalRequests.WithLabelValues(P.nsInstance, ss.Name, ss.ServiceName).Set(cast.ToFloat64(ss.TotalRequests))
