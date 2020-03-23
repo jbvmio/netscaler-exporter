@@ -5,17 +5,17 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/spf13/cast"
 )
 
 const (
 	exporterSubsystem = "exporter"
+	nanoSecond        = 1000000000
 	promResetVal      = 0
 )
 
 // TK keeps track of latest collect times for each nsInstance and subSystem.
 var TK = &timekeeper{
-	last: make(map[string]map[string]int64),
+	last: make(map[string]map[string]float64),
 	lock: sync.Mutex{},
 }
 
@@ -58,12 +58,12 @@ func (e *exporter) Describe(ch chan<- *prometheus.Desc) {
 
 // Collect implements prometheus.Collector.
 func (e *exporter) Collect(ch chan<- prometheus.Metric) {
-	timeNow := time.Now().Unix()
+	timeNow := float64(time.Now().UnixNano())
 	times := TK.retrieve()
 	for ins, sub := range times {
 		for s, T := range sub {
 			if T > 0 {
-				ch <- prometheus.MustNewConstMetric(e.scrapeLagDesc, prometheus.GaugeValue, cast.ToFloat64(timeNow-T), ins, s)
+				ch <- prometheus.MustNewConstMetric(e.scrapeLagDesc, prometheus.GaugeValue, (timeNow-T)/nanoSecond, ins, s)
 			}
 		}
 	}
@@ -76,21 +76,21 @@ func newExporter() *exporter {
 }
 
 type timekeeper struct {
-	last map[string]map[string]int64
+	last map[string]map[string]float64
 	lock sync.Mutex
 }
 
-func (t *timekeeper) set(instance, subSystem string, T int64) {
+func (t *timekeeper) set(instance, subSystem string, T float64) {
 	t.lock.Lock()
 	_, ok := t.last[instance]
 	if !ok {
-		t.last[instance] = make(map[string]int64)
+		t.last[instance] = make(map[string]float64)
 	}
 	t.last[instance][subSystem] = T
 	t.lock.Unlock()
 }
 
-func (t *timekeeper) get(instance, subSystem string) int64 {
+func (t *timekeeper) get(instance, subSystem string) float64 {
 	t.lock.Lock()
 	_, ok := t.last[instance]
 	if !ok {
@@ -105,11 +105,11 @@ func (t *timekeeper) get(instance, subSystem string) int64 {
 	return T
 }
 
-func (t *timekeeper) retrieve() map[string]map[string]int64 {
-	tmp := make(map[string]map[string]int64)
+func (t *timekeeper) retrieve() map[string]map[string]float64 {
+	tmp := make(map[string]map[string]float64)
 	t.lock.Lock()
 	for ins, sub := range t.last {
-		tmp[ins] = make(map[string]int64)
+		tmp[ins] = make(map[string]float64)
 		for s, T := range sub {
 			tmp[ins][s] = T
 		}
