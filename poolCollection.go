@@ -6,9 +6,9 @@ import (
 )
 
 var (
-	poolWG              sync.WaitGroup
-	poolStop            chan struct{}
-	poolLock            *sync.Mutex
+	collectionWG        sync.WaitGroup
+	collectionStop      chan struct{}
+	collectionLock      *sync.Mutex
 	flipBit             collectBit
 	collectIntervalSecs = 5
 )
@@ -20,52 +20,52 @@ type collectBit bool
 
 func (c collectBit) good() bool {
 	var ok bool
-	poolLock.Lock()
+	collectionLock.Lock()
 	if !c {
 		c = true
 		ok = true
 	}
-	poolLock.Unlock()
+	collectionLock.Unlock()
 	return ok
 }
 
 func (c collectBit) flip() {
-	poolLock.Lock()
+	collectionLock.Lock()
 	if c {
 		c = false
 	} else {
 		c = true
 	}
-	poolLock.Unlock()
+	collectionLock.Unlock()
 }
 
 func (p PoolCollection) startCollecting() {
 	p.startTeams()
-	poolStop = make(chan struct{})
-	poolLock = &sync.Mutex{}
-	poolWG.Add(1)
+	collectionStop = make(chan struct{})
+	collectionLock = &sync.Mutex{}
+	collectionWG.Add(1)
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
 		ticker := time.NewTicker(time.Duration(collectIntervalSecs) * time.Second)
 	collectLoop:
 		for {
 			select {
-			case <-poolStop:
+			case <-collectionStop:
 				break collectLoop
 			case <-ticker.C:
-				poolWG.Add(1)
-				go p.processAll(&poolWG)
+				collectionWG.Add(1)
+				go p.processAll(&collectionWG)
 			}
 		}
-	}(&poolWG)
+	}(&collectionWG)
 }
 
 func (p PoolCollection) stopCollecting() {
-	close(poolStop)
+	close(collectionStop)
 	for _, P := range p {
 		P.stopped = true
 	}
-	poolWG.Wait()
+	collectionWG.Wait()
 	p.stopTeams()
 }
 

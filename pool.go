@@ -3,7 +3,6 @@ package main
 import (
 	"container/ring"
 	"encoding/json"
-	"log"
 	"sync"
 	"time"
 
@@ -143,16 +142,20 @@ func (p *Pool) nitroAPITask(req work.TaskRequest) {
 		p.logger.Debug("Sending GetAll API Req", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow))
 		b, err = client.GetAll(R.nitroID)
 		if err != nil {
-			p.closeClientPool()
-			log.Fatalf("error retrieving data: %v\n", err)
+			p.logger.Error("error retrieving API data", zap.Error(err))
+			R.ResultChan() <- []byte{}
+			close(R.ResultChan())
+			return
 		}
 	case 1:
 		p.logger.Debug("Sending Targed API Req", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow))
 		t := R.targets[0]
 		b, err = client.Get(R.nitroID, t)
 		if err != nil {
-			p.closeClientPool()
-			log.Fatalf("error retrieving data: %v\n", err)
+			p.logger.Error("error retrieving API data", zap.Error(err))
+			R.ResultChan() <- []byte{}
+			close(R.ResultChan())
+			return
 		}
 	default:
 		p.logger.Debug("Sending MultiTargeted API Req - SHOULD NOT SEE!!", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow))
@@ -176,6 +179,7 @@ func (p *Pool) nitroAPITask(req work.TaskRequest) {
 
 func (p *Pool) nitroRawTask(req work.TaskRequest) {
 	timeNow := time.Now().UnixNano()
+	var noErr = true
 	p.logger.Debug("Recieved nitroRaw Task", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow))
 	R := req.(*nitroTaskReq)
 	switch data := R.data.(type) {
@@ -197,32 +201,63 @@ func (p *Pool) nitroRawTask(req work.TaskRequest) {
 			datReq := newNitroDataReq(s)
 			success := p.submit(datReq)
 			p.logger.Debug("Sending nitroData Task", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow), zap.Bool("successful", success))
+			if !success {
+				noErr = false
+			}
 		}
+	case RawNSStats:
+		p.logger.Debug("Identified nitroRaw Task Type as RawNSStats", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow))
+		var stats NSStats
+		tmp := struct {
+			Target *NSStats `json:"ns"`
+		}{Target: &stats}
+		err := json.Unmarshal(data, &tmp)
+		if err != nil {
+			p.logger.Error("Recieved nitroRaw Task Error", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow), zap.Error(err))
+			R.ResultChan() <- false
+			close(R.ResultChan())
+			return
+		}
+		p.logger.Debug("Processed RawNSStats", zap.String("TaskType", req.ReqType().String()), zap.Int("Number of Stats", 1), zap.Int64("TaskTS", timeNow))
+		datReq := newNitroDataReq(stats)
+		noErr = p.submit(datReq)
+		p.logger.Debug("Sending nitroData Task", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow), zap.Bool("successful", noErr))
 	}
-	R.ResultChan() <- true
+	R.ResultChan() <- noErr
 	close(R.ResultChan())
 	p.logger.Debug("Completed nitroRaw Task", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow))
 }
 
 func (p *Pool) nitroDataTask(req work.TaskRequest) {
 	timeNow := time.Now().UnixNano()
+	var success bool
+	var sub string
 	p.logger.Debug("Recieved nitroData Task", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow))
 	R := req.(*nitroTaskReq)
 	switch data := R.data.(type) {
 	case ServiceStats:
+		sub = servicesSubsystem
 		p.logger.Debug("Identified nitroData Task Type as ServiceStats", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow))
 		p.logger.Debug("Looking up Service VIP Name", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow), zap.String("Lookup", data.Name))
 		data.ServiceName = p.vipMap.getMapping(p.lbserver.URL, data.Name, p.logger)
 		promReq := newPromTask(data)
-		success := p.submit(promReq)
+		success = p.submit(promReq)
 		p.logger.Debug("Sending nitroProm Task", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow), zap.Bool("successful", success))
-		if R.ResultChan() != nil {
-			close(R.ResultChan())
-		}
+		return
+	case NSStats:
+		sub = nsSubsystem
+		p.logger.Debug("Identified nitroData Task Type as NSStats", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow))
+		promReq := newPromTask(data)
+		success = p.submit(promReq)
+		p.logger.Debug("Sending nitroProm Task", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow), zap.Bool("successful", success))
 		return
 	}
-	R.ResultChan() <- true
-	close(R.ResultChan())
+	if R.ResultChan() != nil {
+		close(R.ResultChan())
+	}
+	if !success {
+		exporterFailuresTotal.WithLabelValues(p.nsInstance, sub).Inc()
+	}
 	p.logger.Debug("Completed nitroData Task", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow))
 }
 
@@ -234,13 +269,13 @@ func (p *Pool) nitroPromTask(req work.TaskRequest) {
 	case ServiceStats:
 		p.logger.Debug("Identified nitroProm Task Type as ServiceStats", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow))
 		p.promSvcStats(data)
-		if R.ResultChan() != nil {
-			close(R.ResultChan())
-		}
-		return
+	case NSStats:
+		p.logger.Debug("Identified nitroProm Task Type as NSStats", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow))
+		p.promNSStats(data)
 	}
-	R.ResultChan() <- true
-	close(R.ResultChan())
+	if R.ResultChan() != nil {
+		close(R.ResultChan())
+	}
 	p.logger.Debug("Completed nitroProm Task", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow))
 }
 
@@ -283,4 +318,21 @@ func newPromTask(n NitroData) *nitroTaskReq {
 		data:   n,
 		result: work.NewResultChannel(),
 	}
+}
+
+func submitAPITask(P *Pool, stat netscaler.StatsType) []byte {
+	var data []byte
+	var valid bool
+	apiReq := newNitroAPIReq(stat)
+	success := P.submit(apiReq)
+	if !success {
+		return []byte{}
+	}
+	b := <-apiReq.ResultChan()
+	data, valid = b.([]byte)
+	switch {
+	case !valid:
+		return []byte{}
+	}
+	return data
 }

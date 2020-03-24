@@ -12,7 +12,6 @@ import (
 
 const (
 	mappingSubsystem = "mapping"
-	backoffTime      = 3
 )
 
 // VIPMap contains mappings.

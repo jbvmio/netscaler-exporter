@@ -17,6 +17,7 @@ const (
 	exporterName      = `netscaler-exporter`
 	namespace         = "citrixadc"
 	netscalerInstance = `citrixadc_instance`
+	backoffTime       = 3
 	defaultThreads    = 1
 )
 
@@ -51,6 +52,9 @@ func main() {
 		P := newPool(lbs, metricsChan, L)
 		P.client = client
 		pools = append(pools, P)
+	}
+	if len(pools) < 1 {
+		L.Fatal("no valid nsInstances available, exiting")
 	}
 
 	sigChan := make(chan os.Signal, 1)

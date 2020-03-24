@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/jbvmio/netscaler"
-	"go.uber.org/zap"
 )
 
 // RawServiceStats is the payload as returned by the Nitro API.
@@ -49,17 +48,19 @@ func processSvcStats(P *Pool, wg *sync.WaitGroup) {
 	}
 	switch {
 	case P.stopped:
-		P.logger.Info("Skipping Service Stats, process is stopping")
+		P.logger.Info("Skipping " + servicesSubsystem + " Stats, process is stopping")
+	case !P.mappingsLoaded:
+		P.logger.Info("unable to collect " + servicesSubsystem + " metrics, mapping not yet complete")
 	default:
-		P.logger.Info("Processing Service Stats")
-		data, err := P.client.GetAll(netscaler.StatsTypeService)
+		P.logger.Info("Processing " + servicesSubsystem + " Stats")
+		data := submitAPITask(P, netscaler.StatsTypeService)
 		switch {
-		case err != nil:
-			P.logger.Error("error retrieving data for Service Stats", zap.Error(err))
+		case len(data) < 1:
+			P.logger.Error("error retrieving data for " + servicesSubsystem + " Stats")
 			exporterFailuresTotal.WithLabelValues(P.nsInstance, servicesSubsystem).Inc()
 		default:
 			req := newNitroRawReq(RawServiceStats(data))
-			P.team.Submit(req)
+			P.submit(req)
 			s := <-req.ResultChan()
 			if success, ok := s.(bool); ok {
 				switch {
@@ -69,7 +70,7 @@ func processSvcStats(P *Pool, wg *sync.WaitGroup) {
 					exporterFailuresTotal.WithLabelValues(P.nsInstance, servicesSubsystem).Inc()
 				}
 			}
-			P.logger.Info("Service Stat Processing Complete")
+			P.logger.Info(servicesSubsystem + " Stat Processing Complete")
 		}
 	}
 }

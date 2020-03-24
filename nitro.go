@@ -57,6 +57,7 @@ func defaultMetricHandleFunc(P *Pool, wg *sync.WaitGroup) {
 
 var metricsMap = map[string]metricHandleFunc{
 	servicesSubsystem: processSvcStats,
+	nsSubsystem:       processNSStats,
 }
 
 func (p *Pool) collectMetrics(wg *sync.WaitGroup) {
@@ -66,15 +67,11 @@ func (p *Pool) collectMetrics(wg *sync.WaitGroup) {
 	switch {
 	case p.stopped:
 		p.logger.Info("unable to collect metrics, process is stopping")
-	case !p.mappingsLoaded:
-		p.logger.Info("unable to collect metrics, mapping not yet complete")
 	case p.flipBit.good():
 		defer p.flipBit.flip()
 		for _, f := range p.metricHandlers {
-			p.poolWG.Add(1)
-			go f(p, &p.poolWG)
+			f(p, nil)
 		}
-		p.poolWG.Wait()
 	default:
 		p.logger.Info(("metric collection already in progress"))
 	}
