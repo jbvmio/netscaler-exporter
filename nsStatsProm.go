@@ -5,6 +5,8 @@ import (
 	"github.com/spf13/cast"
 )
 
+// https://developer-docs.citrix.com/projects/netscaler-nitro-api/en/12.0/statistics/ns/ns/ns/
+
 const nsSubsystem = `ns`
 
 var (
