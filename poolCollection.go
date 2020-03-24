@@ -98,22 +98,3 @@ func (p PoolCollection) collectMappings(wg *sync.WaitGroup) {
 		}
 	}
 }
-
-/*
-func (p PoolCollection) processSvcStats(wg *sync.WaitGroup) {
-	switch {
-	case wg != nil:
-		defer wg.Done()
-		w := sync.WaitGroup{}
-		for _, P := range p {
-			w.Add(1)
-			go processSvcStats(P, &w)
-		}
-		w.Wait()
-	default:
-		for _, P := range p {
-			go processSvcStats(P, nil)
-		}
-	}
-}
-*/
