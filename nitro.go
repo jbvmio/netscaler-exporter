@@ -4,9 +4,6 @@ import (
 	"sync"
 )
 
-// TaskID defines the differents tasks available working with the Nitro API.
-type TaskID int
-
 const (
 	nitroTaskAPI TaskID = iota
 	nitroTaskRaw
@@ -20,6 +17,9 @@ var nitroTaskStrings = [...]string{
 	`nitroTaskData`,
 	`nitroProm`,
 }
+
+// TaskID defines the differents tasks available working with the Nitro API.
+type TaskID int
 
 // ID returns the int ID.
 func (t TaskID) ID() int {
@@ -58,23 +58,6 @@ func defaultMetricHandleFunc(P *Pool, wg *sync.WaitGroup) {
 var metricsMap = map[string]metricHandleFunc{
 	servicesSubsystem: processSvcStats,
 	nsSubsystem:       processNSStats,
-}
-
-func (p *Pool) collectMetrics(wg *sync.WaitGroup) {
-	if wg != nil {
-		defer wg.Done()
-	}
-	switch {
-	case p.stopped:
-		p.logger.Info("unable to collect metrics, process is stopping")
-	case p.flipBit.good():
-		defer p.flipBit.flip()
-		for _, f := range p.metricHandlers {
-			f(p, nil)
-		}
-	default:
-		p.logger.Info(("metric collection already in progress"))
-	}
 }
 
 // CurState is the current state as returned by the Nitro API.

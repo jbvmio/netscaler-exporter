@@ -20,7 +20,8 @@ type Pool struct {
 	poolLock       *sync.Mutex
 	poolWG         sync.WaitGroup
 	metricHandlers map[string]metricHandleFunc
-	flipBit        collectBit
+	backoff        *MiscMap
+	flipBit        *FlipBit
 	lbserver       LBServer
 	nsInstance     string
 	vipMap         VIPMap
@@ -30,17 +31,23 @@ type Pool struct {
 }
 
 func newPool(lbs LBServer, metricsChan chan bool, logger *zap.Logger) *Pool {
+	noClients := len(lbs.Metrics) + 1
 	conf := work.NewTeamConfig()
 	conf.Name = lbs.URL
 	conf.Workers = lbs.PoolWorkers
 	conf.WorkerQueueSize = lbs.PoolWorkerQueue
 	team := work.NewTeam(conf)
 	pool := Pool{
-		team:       team,
-		poolIdx:    ring.New(team.Config.Workers),
-		poolLock:   &sync.Mutex{},
-		poolWG:     sync.WaitGroup{},
-		lbserver:   lbs,
+		team:     team,
+		poolIdx:  ring.New(noClients),
+		poolLock: &sync.Mutex{},
+		poolWG:   sync.WaitGroup{},
+		lbserver: lbs,
+		flipBit:  &FlipBit{lock: sync.Mutex{}},
+		backoff: &MiscMap{
+			data: make(map[string]interface{}, len(lbs.Metrics)),
+			lock: sync.Mutex{},
+		},
 		nsInstance: nsInstance(lbs.URL),
 		logger:     logger.With(zap.String(`nsInstance`, nsInstance(lbs.URL))),
 	}
@@ -64,8 +71,8 @@ func newPool(lbs LBServer, metricsChan chan bool, logger *zap.Logger) *Pool {
 		}
 	}
 	pool.metricHandlers = metricHandlers
-	clientPool := make([]*netscaler.NitroClient, team.Config.Workers)
-	for i := 0; i < team.Config.Workers; i++ {
+	clientPool := make([]*netscaler.NitroClient, noClients)
+	for i := 0; i < noClients; i++ {
 		client, err := netscaler.NewNitroClient(lbs.URL, lbs.User, lbs.Pass, lbs.IgnoreCert)
 		if err != nil {
 			pool.logger.Fatal("error creating additional client", zap.Error(err))
@@ -87,6 +94,28 @@ func newPool(lbs LBServer, metricsChan chan bool, logger *zap.Logger) *Pool {
 	return &pool
 }
 
+func (p *Pool) startTeam(wg *sync.WaitGroup) {
+	defer wg.Done()
+	p.logger.Info("starting workers")
+	p.team.Start()
+}
+
+func (p *Pool) stopTeam(wg *sync.WaitGroup) {
+	defer wg.Done()
+	p.logger.Warn("stopping workers")
+	p.team.Stop()
+}
+
+func (p *Pool) closeClientPool(wg *sync.WaitGroup) {
+	defer wg.Done()
+	p.logger.Warn("disconnecting clients")
+	for _, client := range p.clientPool {
+		client.Disconnect()
+	}
+	p.client.Disconnect()
+	p.logger.Warn("disconnecting clients complete")
+}
+
 func (p *Pool) submit(request work.TaskRequest) bool {
 	switch {
 	case p.stopped:
@@ -98,13 +127,6 @@ func (p *Pool) submit(request work.TaskRequest) bool {
 	default:
 		return p.team.Submit(request)
 	}
-}
-
-func (p *Pool) closeClientPool() {
-	for _, client := range p.clientPool {
-		client.Disconnect()
-	}
-	p.client.Disconnect()
 }
 
 func (p *Pool) getNextClient() *netscaler.NitroClient {

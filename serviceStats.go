@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/jbvmio/netscaler"
+	"go.uber.org/zap"
 )
 
 // RawServiceStats is the payload as returned by the Nitro API.
@@ -46,18 +47,20 @@ func processSvcStats(P *Pool, wg *sync.WaitGroup) {
 	if wg != nil {
 		defer wg.Done()
 	}
+	thisSS := servicesSubsystem
 	switch {
 	case P.stopped:
-		P.logger.Info("Skipping " + servicesSubsystem + " Stats, process is stopping")
+		P.logger.Info("Skipping sybSystem stat collection, process is stopping", zap.String("subSystem", thisSS))
 	case !P.mappingsLoaded:
-		P.logger.Info("unable to collect " + servicesSubsystem + " metrics, mapping not yet complete")
+		P.logger.Info("unable to collect subSystem metrics, mapping not yet complete", zap.String("subSystem", thisSS))
 	default:
-		P.logger.Info("Processing " + servicesSubsystem + " Stats")
+		P.logger.Info("Processing subSystem Stats", zap.String("subSystem", thisSS))
 		data := submitAPITask(P, netscaler.StatsTypeService)
 		switch {
 		case len(data) < 1:
-			P.logger.Error("error retrieving data for " + servicesSubsystem + " Stats")
-			exporterFailuresTotal.WithLabelValues(P.nsInstance, servicesSubsystem).Inc()
+			P.logger.Error("error retrieving data for subSystem stat collection", zap.String("subSystem", thisSS))
+			exporterFailuresTotal.WithLabelValues(P.nsInstance, thisSS).Inc()
+			P.insertBackoff(thisSS)
 		default:
 			req := newNitroRawReq(RawServiceStats(data))
 			P.submit(req)
@@ -65,12 +68,12 @@ func processSvcStats(P *Pool, wg *sync.WaitGroup) {
 			if success, ok := s.(bool); ok {
 				switch {
 				case success:
-					go TK.set(P.nsInstance, servicesSubsystem, float64(time.Now().UnixNano()))
+					go TK.set(P.nsInstance, thisSS, float64(time.Now().UnixNano()))
 				default:
-					exporterFailuresTotal.WithLabelValues(P.nsInstance, servicesSubsystem).Inc()
+					exporterFailuresTotal.WithLabelValues(P.nsInstance, thisSS).Inc()
 				}
 			}
-			P.logger.Info(servicesSubsystem + " Stat Processing Complete")
+			P.logger.Info("subSystem stat collection Complete", zap.String("subSystem", thisSS))
 		}
 	}
 }

@@ -23,7 +23,7 @@ func newAPI(L *zap.Logger) *API {
 	return &API{
 		stopChan: make(chan struct{}),
 		wg:       sync.WaitGroup{},
-		logger:   L.With(zap.String(`process`, `Metrics Exporter`)),
+		logger:   L.With(zap.String(`process`, `Metrics Exporter API`)),
 	}
 }
 
@@ -31,7 +31,7 @@ func (a *API) start(httpSrv *http.Server) {
 	a.wg.Add(1)
 	go func() {
 		defer a.wg.Done()
-		a.logger.Info("Starting ...")
+		a.logger.Info("Starting ... Listening on " + httpSrv.Addr)
 		if err := httpSrv.ListenAndServe(); err != nil {
 			if !strings.Contains(err.Error(), `Server closed`) {
 				a.logger.Fatal("http server encountered an error", zap.Error(err))

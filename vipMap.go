@@ -98,7 +98,7 @@ func collectMappings(P *Pool, wg *sync.WaitGroup) {
 			P.logger.Info("Skipping Mapping Collection, process is stopping")
 			return
 		}
-		time.Sleep(time.Second * backoffTime)
+		time.Sleep(time.Second * 3)
 		P.logger.Info("Retrying Mapping Collection")
 		P.client.WithHTTPTimeout(time.Second * 120)
 		svcB, err = GetSvcBindings(P.client)

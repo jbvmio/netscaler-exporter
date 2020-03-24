@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/jbvmio/netscaler"
+	"go.uber.org/zap"
 )
 
 // RawNSStats is the payload as returned by the Nitro API.
@@ -42,29 +43,31 @@ func processNSStats(P *Pool, wg *sync.WaitGroup) {
 	if wg != nil {
 		defer wg.Done()
 	}
+	thisSS := nsSubsystem
 	switch {
 	case P.stopped:
-		P.logger.Info("Skipping" + nsSubsystem + "Stats, process is stopping")
+		P.logger.Info("Skipping sybSystem stat collection, process is stopping", zap.String("subSystem", thisSS))
 	default:
-		P.logger.Info("Processing " + nsSubsystem + " Stats")
+		P.logger.Info("Processing subSystem Stats", zap.String("subSystem", thisSS))
 		data := submitAPITask(P, netscaler.StatsTypeNS)
 		switch {
 		case len(data) < 1:
-			P.logger.Error("error retrieving data for " + nsSubsystem + " Stats")
-			exporterFailuresTotal.WithLabelValues(P.nsInstance, nsSubsystem).Inc()
+			P.logger.Error("error retrieving data for subSystem stat collection", zap.String("subSystem", thisSS))
+			exporterFailuresTotal.WithLabelValues(P.nsInstance, thisSS).Inc()
+			P.insertBackoff(thisSS)
 		default:
 			req := newNitroRawReq(RawNSStats(data))
-			P.team.Submit(req)
+			P.submit(req)
 			s := <-req.ResultChan()
 			if success, ok := s.(bool); ok {
 				switch {
 				case success:
-					go TK.set(P.nsInstance, nsSubsystem, float64(time.Now().UnixNano()))
+					go TK.set(P.nsInstance, thisSS, float64(time.Now().UnixNano()))
 				default:
-					exporterFailuresTotal.WithLabelValues(P.nsInstance, nsSubsystem).Inc()
+					exporterFailuresTotal.WithLabelValues(P.nsInstance, thisSS).Inc()
 				}
 			}
-			P.logger.Info(nsSubsystem + " Stat Processing Complete")
+			P.logger.Info("subSystem stat collection Complete", zap.String("subSystem", thisSS))
 		}
 	}
 }

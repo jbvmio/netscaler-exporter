@@ -17,7 +17,6 @@ const (
 	exporterName      = `netscaler-exporter`
 	namespace         = "citrixadc"
 	netscalerInstance = `citrixadc_instance`
-	backoffTime       = 3
 	defaultThreads    = 1
 )
 
@@ -73,7 +72,7 @@ func main() {
 	}
 	api := newAPI(L)
 	api.start(&httpSrv)
-	pools.startCollecting()
+	pools.startCollecting(L)
 
 	<-sigChan
 
