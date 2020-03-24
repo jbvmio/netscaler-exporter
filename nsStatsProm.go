@@ -12,7 +12,7 @@ var (
 	nsCPUUsagePCT = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
-			Subsystem: servicesSubsystem,
+			Subsystem: nsSubsystem,
 			Name:      "cpu_usage_pct",
 			Help:      "cpu utilization percentage",
 		},
@@ -21,7 +21,7 @@ var (
 	nsMemUsagePCT = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
-			Subsystem: servicesSubsystem,
+			Subsystem: nsSubsystem,
 			Name:      "mem_usage_pct",
 			Help:      "percentage of memory utilization on netscaler",
 		},
@@ -31,7 +31,7 @@ var (
 	nsPktCPUUsagePCT = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
-			Subsystem: servicesSubsystem,
+			Subsystem: nsSubsystem,
 			Name:      "packet_cpu_usage_pct",
 			Help:      "average cpu utilization for all packet engines excluding mgmt PE",
 		},
@@ -41,7 +41,7 @@ var (
 	nsFlashPartUsage = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
-			Subsystem: servicesSubsystem,
+			Subsystem: nsSubsystem,
 			Name:      "flash_usage_pct",
 			Help:      "used space of the /flash partition on disk as a percentage",
 		},
@@ -51,7 +51,7 @@ var (
 	nsVarPartUsage = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
-			Subsystem: servicesSubsystem,
+			Subsystem: nsSubsystem,
 			Name:      "var_usage_pct",
 			Help:      "used space of the /var partition on disk as a percentage",
 		},
@@ -61,7 +61,7 @@ var (
 	nsTotalRxMB = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
-			Subsystem: servicesSubsystem,
+			Subsystem: nsSubsystem,
 			Name:      "mb_received_total",
 			Help:      "number of megabytes received by the netscaler appliance",
 		},
@@ -71,7 +71,7 @@ var (
 	nsTotalTxMG = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
-			Subsystem: servicesSubsystem,
+			Subsystem: nsSubsystem,
 			Name:      "mb_transmitted_total",
 			Help:      "number of megabytes transmitted by the netscaler appliance",
 		},
@@ -81,7 +81,7 @@ var (
 	nsHTTPReqsTotal = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
-			Subsystem: servicesSubsystem,
+			Subsystem: nsSubsystem,
 			Name:      "http_requests_total",
 			Help:      "total number of HTTP requests received",
 		},
@@ -91,7 +91,7 @@ var (
 	nsHTTPRespTotal = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
-			Subsystem: servicesSubsystem,
+			Subsystem: nsSubsystem,
 			Name:      "http_responses_total",
 			Help:      "total number of HTTP responses sent",
 		},
@@ -101,7 +101,7 @@ var (
 	nsTCPCurClientConns = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
-			Subsystem: servicesSubsystem,
+			Subsystem: nsSubsystem,
 			Name:      "client_connections",
 			Help:      "client connections, including connections in the opening, establised and closing state",
 		},
@@ -111,7 +111,7 @@ var (
 	nsTCPCurClientConnsEst = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
-			Subsystem: servicesSubsystem,
+			Subsystem: nsSubsystem,
 			Name:      "client_connections_established",
 			Help:      "current client connections in the established state",
 		},
@@ -121,7 +121,7 @@ var (
 	nsTCPCurServerConns = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
-			Subsystem: servicesSubsystem,
+			Subsystem: nsSubsystem,
 			Name:      "server_connections",
 			Help:      "server connections, including connections in the opening, establised and closing state",
 		},
@@ -131,7 +131,7 @@ var (
 	nsTCPCurServerConnsEst = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
-			Subsystem: servicesSubsystem,
+			Subsystem: nsSubsystem,
 			Name:      "server_connections_established",
 			Help:      "current server connections in the established state",
 		},
