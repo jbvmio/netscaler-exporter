@@ -244,6 +244,26 @@ func (p *Pool) nitroRawTask(req work.TaskRequest) {
 		datReq := newNitroDataReq(stats)
 		noErr = p.submit(datReq)
 		p.logger.Debug("Sending nitroData Task", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow), zap.Bool("successful", noErr))
+
+	case RawSSLStats:
+
+		p.logger.Debug("Identified nitroRaw Task Type as RawSSLStats", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow))
+		var stats SSLStats
+		tmp := struct {
+			Target *SSLStats `json:"ssl"`
+		}{Target: &stats}
+		err := json.Unmarshal(data, &tmp)
+		if err != nil {
+			p.logger.Error("Recieved nitroRaw Task Error", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow), zap.Error(err))
+			R.ResultChan() <- false
+			close(R.ResultChan())
+			return
+		}
+		p.logger.Debug("Processed RawSSLStats", zap.String("TaskType", req.ReqType().String()), zap.Int("Number of Stats", 1), zap.Int64("TaskTS", timeNow))
+		datReq := newNitroDataReq(stats)
+		noErr = p.submit(datReq)
+		p.logger.Debug("Sending nitroData Task", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow), zap.Bool("successful", noErr))
+
 	}
 	R.ResultChan() <- noErr
 	close(R.ResultChan())
@@ -265,20 +285,25 @@ func (p *Pool) nitroDataTask(req work.TaskRequest) {
 		promReq := newPromTask(data)
 		success = p.submit(promReq)
 		p.logger.Debug("Sending nitroProm Task", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow), zap.Bool("successful", success))
-		return
 	case NSStats:
 		sub = nsSubsystem
 		p.logger.Debug("Identified nitroData Task Type as NSStats", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow))
 		promReq := newPromTask(data)
 		success = p.submit(promReq)
 		p.logger.Debug("Sending nitroProm Task", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow), zap.Bool("successful", success))
-		return
+	case SSLStats:
+		sub = sslSubsystem
+		p.logger.Debug("Identified nitroData Task Type as SSLStats", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow))
+		promReq := newPromTask(data)
+		success = p.submit(promReq)
+		p.logger.Debug("Sending nitroProm Task", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow), zap.Bool("successful", success))
 	}
 	if R.ResultChan() != nil {
 		close(R.ResultChan())
 	}
 	if !success {
 		exporterFailuresTotal.WithLabelValues(p.nsInstance, sub).Inc()
+		exporterPromCollectFailures.WithLabelValues(p.nsInstance, sub).Inc()
 	}
 	p.logger.Debug("Completed nitroData Task", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow))
 }
@@ -294,6 +319,9 @@ func (p *Pool) nitroPromTask(req work.TaskRequest) {
 	case NSStats:
 		p.logger.Debug("Identified nitroProm Task Type as NSStats", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow))
 		p.promNSStats(data)
+	case SSLStats:
+		p.logger.Debug("Identified nitroProm Task Type as SSLStats", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow))
+		p.promSSLStats(data)
 	}
 	if R.ResultChan() != nil {
 		close(R.ResultChan())

@@ -67,6 +67,7 @@ func makeProm() http.Handler {
 
 var allPromCollectors = []prometheus.Collector{
 	exporterFailuresTotal,
+	exporterPromCollectFailures,
 	nsCPUUsagePCT,
 	nsMemUsagePCT,
 	nsPktCPUUsagePCT,
@@ -96,4 +97,7 @@ var allPromCollectors = []prometheus.Collector{
 	servicesCurrentLoad,
 	servicesVirtualServerServiceHits,
 	servicesActiveTransactions,
+	sslTotalTransactions,
+	sslTotalSessions,
+	sslCurrentSessions,
 }

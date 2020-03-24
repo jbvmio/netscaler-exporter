@@ -30,6 +30,15 @@ var (
 		},
 		exporterLabels,
 	)
+	exporterPromCollectFailures = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: namespace,
+			Subsystem: exporterSubsystem,
+			Name:      `prometheus_collect_failures`,
+			Help:      `The total number of failures encountered while collecting prometheus metrics`,
+		},
+		exporterLabels,
+	)
 	exporterScrapeLag = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
