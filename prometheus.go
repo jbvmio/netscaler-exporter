@@ -21,12 +21,12 @@ var TK = &timekeeper{
 
 var (
 	exporterLabels             = []string{netscalerInstance, `citrixadc_subsystem`}
-	nsVerLabels                = []string{netscalerInstance, `nsversion`}
+	nsVerLabels                = []string{netscalerInstance, `citrixadc_nsversion`}
 	exporterAPICollectFailures = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: namespace,
 			Subsystem: exporterSubsystem,
-			Name:      `api_collect_failures`,
+			Name:      `api_collect_failures_total`,
 			Help:      `The total number of failures encountered while querying the netscaler API`,
 		},
 		exporterLabels,
@@ -35,7 +35,7 @@ var (
 		prometheus.CounterOpts{
 			Namespace: namespace,
 			Subsystem: exporterSubsystem,
-			Name:      `processing_failures`,
+			Name:      `processing_failures_total`,
 			Help:      `The total number of failures encountered while processing data returned from the netscaler API`,
 		},
 		exporterLabels,
@@ -44,7 +44,7 @@ var (
 		prometheus.CounterOpts{
 			Namespace: namespace,
 			Subsystem: exporterSubsystem,
-			Name:      `prometheus_collect_failures`,
+			Name:      `prometheus_collect_failures_total`,
 			Help:      `The total number of failures encountered sending metrics to prometheus`,
 		},
 		exporterLabels,
@@ -53,13 +53,13 @@ var (
 		prometheus.GaugeOpts{
 			Namespace: namespace,
 			Subsystem: exporterSubsystem,
-			Name:      `scrape_lag`,
+			Name:      `scrape_lag_seconds`,
 			Help:      `The number of seconds between the subsystem metric collection and the metric scrape`,
 		},
 		exporterLabels,
 	)
 	exporterScrapeLagDesc = prometheus.NewDesc(
-		namespace+`_`+exporterSubsystem+`_scrape_lag`,
+		namespace+`_`+exporterSubsystem+`_scrape_lag_seconds`,
 		`The number of seconds between the subsystem metric collection and the metric scrape`,
 		exporterLabels,
 		nil,
@@ -68,14 +68,14 @@ var (
 	exporterNSVersion = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
-			Subsystem: `nsversion`,
+			Subsystem: `ns`,
 			Name:      `version`,
 			Help:      `version of a citrix adc instance`,
 		},
 		nsVerLabels,
 	)
 	exporterNSVersionDesc = prometheus.NewDesc(
-		namespace+`_nsversion_version`,
+		namespace+`_ns_version`,
 		`version of a citrix adc instance`,
 		nsVerLabels,
 		nil,
