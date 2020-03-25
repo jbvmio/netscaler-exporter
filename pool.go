@@ -27,6 +27,7 @@ type Pool struct {
 	vipMap         VIPMap
 	mappingsLoaded bool
 	stopped        bool
+	nsVersion      string
 	logger         *zap.Logger
 }
 
@@ -244,9 +245,7 @@ func (p *Pool) nitroRawTask(req work.TaskRequest) {
 		datReq := newNitroDataReq(stats)
 		noErr = p.submit(datReq)
 		p.logger.Debug("Sending nitroData Task", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow), zap.Bool("successful", noErr))
-
 	case RawSSLStats:
-
 		p.logger.Debug("Identified nitroRaw Task Type as RawSSLStats", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow))
 		var stats SSLStats
 		tmp := struct {
@@ -263,7 +262,6 @@ func (p *Pool) nitroRawTask(req work.TaskRequest) {
 		datReq := newNitroDataReq(stats)
 		noErr = p.submit(datReq)
 		p.logger.Debug("Sending nitroData Task", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow), zap.Bool("successful", noErr))
-
 	}
 	R.ResultChan() <- noErr
 	close(R.ResultChan())
@@ -302,7 +300,6 @@ func (p *Pool) nitroDataTask(req work.TaskRequest) {
 		close(R.ResultChan())
 	}
 	if !success {
-		exporterFailuresTotal.WithLabelValues(p.nsInstance, sub).Inc()
 		exporterPromCollectFailures.WithLabelValues(p.nsInstance, sub).Inc()
 	}
 	p.logger.Debug("Completed nitroData Task", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow))

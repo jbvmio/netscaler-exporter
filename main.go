@@ -49,6 +49,7 @@ func main() {
 			continue
 		}
 		P := newPool(lbs, metricsChan, L)
+		P.nsVersion = nsVersion(GetNSVersion(client))
 		P.client = client
 		pools = append(pools, P)
 	}

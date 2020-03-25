@@ -20,13 +20,23 @@ var TK = &timekeeper{
 }
 
 var (
-	exporterLabels        = []string{netscalerInstance, `citrixadc_subsystem`}
-	exporterFailuresTotal = prometheus.NewCounterVec(
+	exporterLabels             = []string{netscalerInstance, `citrixadc_subsystem`}
+	nsVerLabels                = []string{netscalerInstance, `nsversion`}
+	exporterAPICollectFailures = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: namespace,
 			Subsystem: exporterSubsystem,
-			Name:      `failures_total`,
-			Help:      `The total number of failures encountered by the netscaler-exporter`,
+			Name:      `api_collect_failures`,
+			Help:      `The total number of failures encountered while querying the netscaler API`,
+		},
+		exporterLabels,
+	)
+	exporterProcessingFailures = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: namespace,
+			Subsystem: exporterSubsystem,
+			Name:      `processing_failures`,
+			Help:      `The total number of failures encountered while processing data returned from the netscaler API`,
 		},
 		exporterLabels,
 	)
@@ -35,7 +45,7 @@ var (
 			Namespace: namespace,
 			Subsystem: exporterSubsystem,
 			Name:      `prometheus_collect_failures`,
-			Help:      `The total number of failures encountered while collecting prometheus metrics`,
+			Help:      `The total number of failures encountered sending metrics to prometheus`,
 		},
 		exporterLabels,
 	)
@@ -54,19 +64,40 @@ var (
 		exporterLabels,
 		nil,
 	)
+
+	exporterNSVersion = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: namespace,
+			Subsystem: `nsversion`,
+			Name:      `version`,
+			Help:      `version of a citrix adc instance`,
+		},
+		nsVerLabels,
+	)
+	exporterNSVersionDesc = prometheus.NewDesc(
+		namespace+`_nsversion_version`,
+		`version of a citrix adc instance`,
+		nsVerLabels,
+		nil,
+	)
 )
 
 type exporter struct {
 	scrapeLagDesc *prometheus.Desc
+	nsVersionDesc *prometheus.Desc
 }
 
 // Describe implements prometheus.Collector.
 func (e *exporter) Describe(ch chan<- *prometheus.Desc) {
 	ch <- e.scrapeLagDesc
+	ch <- e.nsVersionDesc
 }
 
 // Collect implements prometheus.Collector.
 func (e *exporter) Collect(ch chan<- prometheus.Metric) {
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	go pools.collectNSVersions(e.nsVersionDesc, ch, &wg)
 	timeNow := float64(time.Now().UnixNano())
 	times := TK.retrieve()
 	for ins, sub := range times {
@@ -76,11 +107,22 @@ func (e *exporter) Collect(ch chan<- prometheus.Metric) {
 			}
 		}
 	}
+	wg.Wait()
+}
+
+func (p PoolCollection) collectNSVersions(desc *prometheus.Desc, ch chan<- prometheus.Metric, wg *sync.WaitGroup) {
+	defer wg.Done()
+	for _, P := range p {
+		if P.nsVersion != "" {
+			ch <- prometheus.MustNewConstMetric(desc, prometheus.GaugeValue, 0, P.nsInstance, P.nsVersion)
+		}
+	}
 }
 
 func newExporter() *exporter {
 	return &exporter{
 		scrapeLagDesc: exporterScrapeLagDesc,
+		nsVersionDesc: exporterNSVersionDesc,
 	}
 }
 

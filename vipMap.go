@@ -86,7 +86,7 @@ func collectMappings(P *Pool, wg *sync.WaitGroup) {
 	svcB, err := GetSvcBindings(P.client)
 	if err != nil {
 		P.logger.Error("error retrieving data", zap.Error(err))
-		exporterFailuresTotal.WithLabelValues(P.nsInstance, mappingSubsystem).Inc()
+		exporterAPICollectFailures.WithLabelValues(P.nsInstance, mappingSubsystem).Inc()
 		if P.mappingsLoaded {
 			return
 		}
@@ -104,7 +104,7 @@ func collectMappings(P *Pool, wg *sync.WaitGroup) {
 		svcB, err = GetSvcBindings(P.client)
 		if err != nil {
 			P.logger.Error("error retrieving data", zap.Error(err))
-			exporterFailuresTotal.WithLabelValues(P.nsInstance, mappingSubsystem).Inc()
+			exporterAPICollectFailures.WithLabelValues(P.nsInstance, mappingSubsystem).Inc()
 		} else {
 			pr = true
 			P.client.WithHTTPTimeout(time.Second * 60)

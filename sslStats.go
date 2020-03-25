@@ -42,7 +42,7 @@ func processSSLStats(P *Pool, wg *sync.WaitGroup) {
 		switch {
 		case len(data) < 1:
 			P.logger.Error("error retrieving data for subSystem stat collection", zap.String("subSystem", thisSS))
-			exporterFailuresTotal.WithLabelValues(P.nsInstance, thisSS).Inc()
+			exporterAPICollectFailures.WithLabelValues(P.nsInstance, thisSS).Inc()
 			P.insertBackoff(thisSS)
 		default:
 			req := newNitroRawReq(RawSSLStats(data))
@@ -53,7 +53,7 @@ func processSSLStats(P *Pool, wg *sync.WaitGroup) {
 				case success:
 					go TK.set(P.nsInstance, thisSS, float64(time.Now().UnixNano()))
 				default:
-					exporterFailuresTotal.WithLabelValues(P.nsInstance, thisSS).Inc()
+					exporterProcessingFailures.WithLabelValues(P.nsInstance, thisSS).Inc()
 				}
 			}
 			P.logger.Info("subSystem stat collection Complete", zap.String("subSystem", thisSS))

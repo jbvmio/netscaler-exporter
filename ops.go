@@ -74,3 +74,12 @@ func nsInstance(url string) string {
 	}
 	return n
 }
+
+func nsVersion(nsVer string) (version string) {
+	parts := strings.Split(nsVer, `,`)
+	if len(parts) > 0 {
+		version = strings.TrimLeft(parts[0], `NetScaler `)
+		version = strings.Replace(version, `: Build `, `-`, 1)
+	}
+	return
+}
