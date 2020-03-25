@@ -10,32 +10,44 @@ import (
 const nsSubsystem = `ns`
 
 var (
-	nsLabels      = []string{netscalerInstance}
-	nsCPUUsagePCT = prometheus.NewGaugeVec(
+	nsLabels = []string{netscalerInstance}
+
+	nsCPUUsagePct = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
 			Subsystem: nsSubsystem,
 			Name:      "cpu_usage_pct",
-			Help:      "cpu utilization percentage",
-		},
-		nsLabels,
-	)
-	nsMemUsagePCT = prometheus.NewGaugeVec(
-		prometheus.GaugeOpts{
-			Namespace: namespace,
-			Subsystem: nsSubsystem,
-			Name:      "mem_usage_pct",
-			Help:      "percentage of memory utilization on netscaler",
+			Help:      "CPU utilization percentage",
 		},
 		nsLabels,
 	)
 
-	nsPktCPUUsagePCT = prometheus.NewGaugeVec(
+	nsMemUsagePct = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
 			Subsystem: nsSubsystem,
-			Name:      "packet_cpu_usage_pct",
-			Help:      "average cpu utilization for all packet engines excluding mgmt PE",
+			Name:      "mem_usage_pct",
+			Help:      "Percentage of memory utilization on NetScaler",
+		},
+		nsLabels,
+	)
+
+	nsMgmtCPUUsagePct = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: namespace,
+			Subsystem: nsSubsystem,
+			Name:      "mgmt_cpu_usage_pct",
+			Help:      "Average Management CPU utilization percentage",
+		},
+		nsLabels,
+	)
+
+	nsPktCPUUsagePct = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: namespace,
+			Subsystem: nsSubsystem,
+			Name:      "pkt_cpu_usage_pct",
+			Help:      "Average CPU utilization percentage for all packet engines excluding management PE",
 		},
 		nsLabels,
 	)
@@ -45,7 +57,7 @@ var (
 			Namespace: namespace,
 			Subsystem: nsSubsystem,
 			Name:      "flash_usage_pct",
-			Help:      "used space of the /flash partition on disk as a percentage",
+			Help:      "Used space in /flash partition of the disk, as a percentage. This is a critical counter",
 		},
 		nsLabels,
 	)
@@ -55,27 +67,27 @@ var (
 			Namespace: namespace,
 			Subsystem: nsSubsystem,
 			Name:      "var_usage_pct",
-			Help:      "used space of the /var partition on disk as a percentage",
+			Help:      "Used space in /var partition of the disk, as a percentage. This is a critical counter",
 		},
 		nsLabels,
 	)
 
-	nsTotalRxMB = prometheus.NewGaugeVec(
+	nsTotalRxBytes = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
 			Subsystem: nsSubsystem,
-			Name:      "mb_received_total",
-			Help:      "number of megabytes received by the netscaler appliance",
+			Name:      "received_bytes_total",
+			Help:      "Number of bytes received by the NetScaler appliance",
 		},
 		nsLabels,
 	)
 
-	nsTotalTxMG = prometheus.NewGaugeVec(
+	nsTotalTxBytes = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
 			Subsystem: nsSubsystem,
-			Name:      "mb_transmitted_total",
-			Help:      "number of megabytes transmitted by the netscaler appliance",
+			Name:      "transmitted_bytes_total",
+			Help:      "Number of bytes transmitted by the NetScaler appliance",
 		},
 		nsLabels,
 	)
@@ -85,7 +97,7 @@ var (
 			Namespace: namespace,
 			Subsystem: nsSubsystem,
 			Name:      "http_requests_total",
-			Help:      "total number of HTTP requests received",
+			Help:      "Total number of HTTP requests received",
 		},
 		nsLabels,
 	)
@@ -95,7 +107,7 @@ var (
 			Namespace: namespace,
 			Subsystem: nsSubsystem,
 			Name:      "http_responses_total",
-			Help:      "total number of HTTP responses sent",
+			Help:      "Total number of HTTP responses sent",
 		},
 		nsLabels,
 	)
@@ -105,7 +117,7 @@ var (
 			Namespace: namespace,
 			Subsystem: nsSubsystem,
 			Name:      "client_connections",
-			Help:      "client connections, including connections in the opening, establised and closing state",
+			Help:      "Client connections, including connections in the Opening, Established, and Closing state.",
 		},
 		nsLabels,
 	)
@@ -115,7 +127,7 @@ var (
 			Namespace: namespace,
 			Subsystem: nsSubsystem,
 			Name:      "client_connections_established",
-			Help:      "current client connections in the established state",
+			Help:      "Current client connections in the Established state, which indicates that data transfer can occur between the NetScaler and the client.",
 		},
 		nsLabels,
 	)
@@ -125,7 +137,7 @@ var (
 			Namespace: namespace,
 			Subsystem: nsSubsystem,
 			Name:      "server_connections",
-			Help:      "server connections, including connections in the opening, establised and closing state",
+			Help:      "Server connections, including connections in the Opening, Established, and Closing state.",
 		},
 		nsLabels,
 	)
@@ -135,20 +147,21 @@ var (
 			Namespace: namespace,
 			Subsystem: nsSubsystem,
 			Name:      "server_connections_established",
-			Help:      "current server connections in the established state",
+			Help:      "Current server connections in the Established state, which indicates that data transfer can occur between the NetScaler and the server.",
 		},
 		nsLabels,
 	)
 )
 
 func (P *Pool) promNSStats(ss NSStats) {
-	nsCPUUsagePCT.WithLabelValues(P.nsInstance).Set(ss.CPUUsagePct)
-	nsMemUsagePCT.WithLabelValues(P.nsInstance).Set(ss.MemUsagePct)
-	nsPktCPUUsagePCT.WithLabelValues(P.nsInstance).Set(ss.PktCPUUsagePct)
+	nsCPUUsagePct.WithLabelValues(P.nsInstance).Set(ss.CPUUsagePct)
+	nsMemUsagePct.WithLabelValues(P.nsInstance).Set(ss.MemUsagePct)
+	nsMgmtCPUUsagePct.WithLabelValues(P.nsInstance).Set(ss.MgmtCPUUsagePct)
+	nsPktCPUUsagePct.WithLabelValues(P.nsInstance).Set(ss.PktCPUUsagePct)
 	nsFlashPartUsage.WithLabelValues(P.nsInstance).Set(ss.FlashPartitionUsage)
 	nsVarPartUsage.WithLabelValues(P.nsInstance).Set(ss.VarPartitionUsage)
-	nsTotalRxMB.WithLabelValues(P.nsInstance).Set(cast.ToFloat64(ss.TotalReceivedMB))
-	nsTotalTxMG.WithLabelValues(P.nsInstance).Set(cast.ToFloat64(ss.TotalTransmitMB))
+	nsTotalRxBytes.WithLabelValues(P.nsInstance).Set(cast.ToFloat64(ss.TotalReceivedMB) * 1024 * 1024)
+	nsTotalTxBytes.WithLabelValues(P.nsInstance).Set(cast.ToFloat64(ss.TotalTransmitMB) * 1024 * 1024)
 	nsHTTPReqsTotal.WithLabelValues(P.nsInstance).Set(cast.ToFloat64(ss.HTTPRequests))
 	nsHTTPRespTotal.WithLabelValues(P.nsInstance).Set(cast.ToFloat64(ss.HTTPResponses))
 	nsTCPCurClientConns.WithLabelValues(P.nsInstance).Set(cast.ToFloat64(ss.TCPCurrentClientConnections))
