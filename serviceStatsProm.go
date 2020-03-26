@@ -14,13 +14,13 @@ const servicesSubsystem = "service"
 
 var (
 	servicesLabels = []string{netscalerInstance, `citrixadc_service_name`, `citrixadc_lb_name`}
-	// TODO - Convert megabytes to bytes
+
 	servicesThroughput = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
 			Subsystem: servicesSubsystem,
 			Name:      "throughput_bytes",
-			Help:      "Number of bytes received or sent by this service (Mbps)",
+			Help:      "Number of bytes received or sent by this service",
 		},
 		servicesLabels,
 	)
@@ -178,8 +178,10 @@ var (
 
 func (P *Pool) promSvcStats(ss ServiceStats) {
 	P.logger.Debug("recieved ServiceStat", zap.String("Received", fmt.Sprintf("%+v", ss)))
-	servicesThroughput.WithLabelValues(P.nsInstance, ss.Name, ss.ServiceName).Set(cast.ToFloat64(ss.Throughput))
-	servicesAvgTTFB.WithLabelValues(P.nsInstance, ss.Name, ss.ServiceName).Set(cast.ToFloat64(ss.AvgTimeToFirstByte))
+	// Value is in megabytes. Convert to base unit of bytes.
+	servicesThroughput.WithLabelValues(P.nsInstance, ss.Name, ss.ServiceName).Set(cast.ToFloat64(ss.Throughput) * 1024 * 1024)
+	// Value is in milliseconds. Convert to base unit of seconds.
+	servicesAvgTTFB.WithLabelValues(P.nsInstance, ss.Name, ss.ServiceName).Set(cast.ToFloat64(ss.AvgTimeToFirstByte) * 0.001)
 	servicesState.WithLabelValues(P.nsInstance, ss.Name, ss.ServiceName).Set(ss.State.Value())
 	servicesTotalRequests.WithLabelValues(P.nsInstance, ss.Name, ss.ServiceName).Set(cast.ToFloat64(ss.TotalRequests))
 	servicesTotalResponses.WithLabelValues(P.nsInstance, ss.Name, ss.ServiceName).Set(cast.ToFloat64(ss.TotalResponses))
