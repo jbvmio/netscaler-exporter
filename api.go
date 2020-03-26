@@ -56,13 +56,32 @@ func (a *API) stop(httpSrv *http.Server) {
 	a.logger.Info("All Processes Stopped.")
 }
 
-func makeProm() http.Handler {
+func makeProm(cr *prometheus.Registry, l *zap.Logger) http.Handler {
 	prom := prometheus.NewRegistry()
-	e := newExporter()
+	e := newExporter(cr, l)
 	prom.MustRegister(e)
 	prom.MustRegister(allPromCollectors...)
 	handleProm := promhttp.HandlerFor(prom, promhttp.HandlerOpts{})
 	return handleProm
+}
+
+func makeCounterRegistry() *prometheus.Registry {
+	prom := prometheus.NewRegistry()
+	prom.MustRegister(counterPromCollectors...)
+	return prom
+}
+
+var counterPromCollectors = []prometheus.Collector{
+	servicesTotalRequestBytes,
+	servicesTotalRequests,
+	servicesTotalResponses,
+	servicesTotalResponseBytes,
+	sslTotalTransactions,
+	sslTotalSessions,
+	nsTotalRxBytes,
+	nsTotalTxBytes,
+	nsHTTPReqsTotal,
+	nsHTTPRespTotal,
 }
 
 var allPromCollectors = []prometheus.Collector{
@@ -75,10 +94,6 @@ var allPromCollectors = []prometheus.Collector{
 	nsPktCPUUsagePct,
 	nsFlashPartUsage,
 	nsVarPartUsage,
-	nsTotalRxBytes,
-	nsTotalTxBytes,
-	nsHTTPReqsTotal,
-	nsHTTPRespTotal,
 	nsTCPCurClientConns,
 	nsTCPCurClientConnsEst,
 	nsTCPCurServerConns,
@@ -86,10 +101,6 @@ var allPromCollectors = []prometheus.Collector{
 	servicesThroughput,
 	servicesAvgTTFB,
 	servicesState,
-	servicesTotalRequests,
-	servicesTotalResponses,
-	servicesTotalRequestBytes,
-	servicesTotalResponseBytes,
 	servicesCurrentClientConns,
 	servicesCurrentServerConns,
 	servicesSurgeCount,
@@ -99,7 +110,5 @@ var allPromCollectors = []prometheus.Collector{
 	servicesCurrentLoad,
 	servicesVirtualServerServiceHits,
 	servicesActiveTransactions,
-	sslTotalTransactions,
-	sslTotalSessions,
 	sslCurrentSessions,
 }

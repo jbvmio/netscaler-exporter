@@ -13,8 +13,7 @@ import (
 const servicesSubsystem = "service"
 
 var (
-	servicesLabels = []string{netscalerInstance, `citrixadc_service_name`, `citrixadc_lb_name`}
-
+	servicesLabels     = []string{netscalerInstance, `citrixadc_service_name`, `citrixadc_lb_name`}
 	servicesThroughput = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,

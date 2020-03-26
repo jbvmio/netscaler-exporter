@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"go.uber.org/zap"
 )
 
 const (
@@ -64,7 +65,6 @@ var (
 		exporterLabels,
 		nil,
 	)
-
 	exporterNSVersion = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
@@ -83,8 +83,10 @@ var (
 )
 
 type exporter struct {
-	scrapeLagDesc *prometheus.Desc
-	nsVersionDesc *prometheus.Desc
+	counterRegistry *prometheus.Registry
+	scrapeLagDesc   *prometheus.Desc
+	nsVersionDesc   *prometheus.Desc
+	logger          *zap.Logger
 }
 
 // Describe implements prometheus.Collector.
@@ -98,6 +100,8 @@ func (e *exporter) Collect(ch chan<- prometheus.Metric) {
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 	go pools.collectNSVersions(e.nsVersionDesc, ch, &wg)
+	wg.Add(1)
+	go e.collectCounters(ch, &wg)
 	timeNow := float64(time.Now().UnixNano())
 	times := TK.retrieve()
 	for ins, sub := range times {
@@ -110,6 +114,33 @@ func (e *exporter) Collect(ch chan<- prometheus.Metric) {
 	wg.Wait()
 }
 
+func (e *exporter) collectCounters(ch chan<- prometheus.Metric, wg *sync.WaitGroup) {
+	defer wg.Done()
+	fams, err := e.counterRegistry.Gather()
+	if err != nil {
+		exporterProcessingFailures.WithLabelValues(`all`, `exporter`).Inc()
+		e.logger.Error("error gathering counters", zap.Error(err))
+		return
+	}
+	for _, fam := range fams {
+		metrics := fam.GetMetric()
+		if len(metrics) > 0 {
+			var labels []string
+			for _, l := range metrics[0].GetLabel() {
+				labels = append(labels, l.GetName())
+			}
+			desc := prometheus.NewDesc(fam.GetName(), fam.GetHelp(), labels, nil)
+			for _, metric := range metrics {
+				var labelVals []string
+				for _, l := range metric.GetLabel() {
+					labelVals = append(labelVals, l.GetValue())
+				}
+				ch <- prometheus.MustNewConstMetric(desc, prometheus.CounterValue, metric.GetGauge().GetValue(), labelVals...)
+			}
+		}
+	}
+}
+
 func (p PoolCollection) collectNSVersions(desc *prometheus.Desc, ch chan<- prometheus.Metric, wg *sync.WaitGroup) {
 	defer wg.Done()
 	for _, P := range p {
@@ -119,10 +150,12 @@ func (p PoolCollection) collectNSVersions(desc *prometheus.Desc, ch chan<- prome
 	}
 }
 
-func newExporter() *exporter {
+func newExporter(cr *prometheus.Registry, l *zap.Logger) *exporter {
 	return &exporter{
-		scrapeLagDesc: exporterScrapeLagDesc,
-		nsVersionDesc: exporterNSVersionDesc,
+		counterRegistry: cr,
+		scrapeLagDesc:   exporterScrapeLagDesc,
+		nsVersionDesc:   exporterNSVersionDesc,
+		logger:          l.With(zap.String("process", "exporter")),
 	}
 }
 

@@ -62,7 +62,8 @@ func main() {
 
 	pools.collectMappings(nil)
 
-	handleProm := makeProm()
+	R := makeCounterRegistry()
+	handleProm := makeProm(R, L)
 	r := mux.NewRouter()
 	r.Handle(`/metrics`, handleProm)
 	httpSrv := http.Server{
