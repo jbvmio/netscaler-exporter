@@ -29,7 +29,7 @@ func (p *Pool) collectMetrics(wg *sync.WaitGroup) {
 			}
 		}
 	default:
-		p.logger.Info(("metric collection already in progress"))
+		p.logger.Debug(("metric collection already in progress"))
 	}
 }
 

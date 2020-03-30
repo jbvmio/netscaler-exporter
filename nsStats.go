@@ -48,7 +48,7 @@ func processNSStats(P *Pool, wg *sync.WaitGroup) {
 	case P.stopped:
 		P.logger.Info("Skipping sybSystem stat collection, process is stopping", zap.String("subSystem", thisSS))
 	default:
-		P.logger.Info("Processing subSystem Stats", zap.String("subSystem", thisSS))
+		P.logger.Debug("Processing subSystem Stats", zap.String("subSystem", thisSS))
 		data := submitAPITask(P, netscaler.StatsTypeNS)
 		switch {
 		case len(data) < 1:
@@ -67,7 +67,7 @@ func processNSStats(P *Pool, wg *sync.WaitGroup) {
 					exporterProcessingFailures.WithLabelValues(P.nsInstance, thisSS).Inc()
 				}
 			}
-			P.logger.Info("subSystem stat collection Complete", zap.String("subSystem", thisSS))
+			P.logger.Debug("subSystem stat collection Complete", zap.String("subSystem", thisSS))
 		}
 	}
 }

@@ -8,44 +8,32 @@ import (
 	"go.uber.org/zap"
 )
 
-// RawSSLStats is the payload as returned by the Nitro API.
-type RawSSLStats []byte
+// RawSSFromLBVS is a RawLBVServer payload as returned by the Nitro API used to process ServiceStats.
+type RawSSFromLBVS []byte
 
 // Len returns the size of the underlying []byte.
-func (r RawSSLStats) Len() int {
+func (r RawSSFromLBVS) Len() int {
 	return len(r)
 }
 
-// SSLStats represents the data returned from the /stat/service Nitro API endpoint
-type SSLStats struct {
-	TotalSSLTransactions string `json:"ssltottransactions"`
-	TotalSSLSessions     string `json:"ssltotsessions"`
-	SSLSessions          string `json:"sslcursessions"`
-}
-
-// NitroType implements the NitroData interface.
-func (s SSLStats) NitroType() string {
-	return sslSubsystem
-}
-
-func processSSLStats(P *Pool, wg *sync.WaitGroup) {
+func processLBVServerSvcStats(P *Pool, wg *sync.WaitGroup) {
 	if wg != nil {
 		defer wg.Done()
 	}
-	thisSS := sslSubsystem
+	thisSS := lbVSvrSvcSubsystem
 	switch {
 	case P.stopped:
 		P.logger.Info("Skipping sybSystem stat collection, process is stopping", zap.String("subSystem", thisSS))
 	default:
 		P.logger.Debug("Processing subSystem Stats", zap.String("subSystem", thisSS))
-		data := submitAPITask(P, netscaler.StatsTypeSSL)
+		data := submitAPITask(P, netscaler.StatsTypeLBVServer)
 		switch {
 		case len(data) < 1:
 			P.logger.Error("error retrieving data for subSystem stat collection", zap.String("subSystem", thisSS))
 			exporterAPICollectFailures.WithLabelValues(P.nsInstance, thisSS).Inc()
 			P.insertBackoff(thisSS)
-		default:
-			req := newNitroRawReq(RawSSLStats(data))
+		case P.lbsvcFlipBit.good():
+			req := newNitroRawReq(RawSSFromLBVS(data))
 			P.submit(req)
 			s := <-req.ResultChan()
 			if success, ok := s.(bool); ok {
@@ -54,9 +42,13 @@ func processSSLStats(P *Pool, wg *sync.WaitGroup) {
 					go TK.set(P.nsInstance, thisSS, float64(time.Now().UnixNano()))
 				default:
 					exporterProcessingFailures.WithLabelValues(P.nsInstance, thisSS).Inc()
+					P.insertBackoff(thisSS)
 				}
 			}
 			P.logger.Debug("subSystem stat collection Complete", zap.String("subSystem", thisSS))
+		default:
+			P.logger.Debug("subSystem metric collection already in progress", zap.String("subSystem", thisSS))
+
 		}
 	}
 }

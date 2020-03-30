@@ -1,6 +1,7 @@
 package main
 
 import (
+	"net/http"
 	"sync"
 	"time"
 
@@ -88,13 +89,21 @@ func (p PoolCollection) collectMappings(wg *sync.WaitGroup) {
 		defer wg.Done()
 		w := sync.WaitGroup{}
 		for _, P := range p {
-			w.Add(1)
-			go collectMappings(P, &w)
+			if P.collectMappings {
+				w.Add(1)
+				go collectMappings(P, false, &w)
+			}
 		}
 		w.Wait()
 	default:
 		for _, P := range p {
-			go collectMappings(P, nil)
+			if P.collectMappings {
+				go collectMappings(P, false, nil)
+			}
 		}
 	}
+}
+
+func (p PoolCollection) handleMappings(w http.ResponseWriter, r *http.Request) {
+
 }

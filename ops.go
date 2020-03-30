@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"strings"
 	"sync"
 )
@@ -82,4 +83,14 @@ func nsVersion(nsVer string) (version string) {
 		version = strings.Replace(version, `: Build `, `-`, 1)
 	}
 	return
+}
+
+func createDir(path string) error {
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		err = os.MkdirAll(path, 0755)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }

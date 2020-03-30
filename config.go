@@ -8,20 +8,20 @@ import (
 
 // Config parameters for the exporter:
 type Config struct {
+	LogLevel  string     `yaml:"loglevel"`
 	LBServers []LBServer `yaml:"lbservers"`
 }
 
 // LBServer details for a Netscaler LB:
 type LBServer struct {
-	URL              string   `yaml:"url"`
-	User             string   `yaml:"user"`
-	Pass             string   `yaml:"pass"`
-	IgnoreCert       bool     `yaml:"ignoreCert"`
-	CollectorThreads int      `yaml:"collectorThreads"`
-	PoolWorkers      int      `yaml:"poolWorkers"`
-	PoolWorkerQueue  int      `yaml:"poolWorkerQueue"`
-	LogLevel         string   `yaml:"loglevel"`
-	Metrics          []string `yaml:"metrics"`
+	URL             string   `yaml:"url"`
+	User            string   `yaml:"user"`
+	Pass            string   `yaml:"pass"`
+	MappingsURL     string   `yaml:"mappingsUrl"`
+	IgnoreCert      bool     `yaml:"ignoreCert"`
+	PoolWorkers     int      `yaml:"poolWorkers"`
+	PoolWorkerQueue int      `yaml:"poolWorkerQueue"`
+	Metrics         []string `yaml:"metrics"`
 }
 
 // GetConfig reads in a config file and returns a Config.
@@ -33,18 +33,14 @@ func GetConfig(filePath string) *Config {
 	}
 	var C Config
 	viper.Unmarshal(&C)
+	viper.SetDefault(`loglevel`, `info`)
+	C.LogLevel = viper.GetString(`loglevel`)
 	for _, c := range C.LBServers {
-		if c.CollectorThreads < 1 {
-			c.CollectorThreads = 1
-		}
 		if c.PoolWorkers < 1 {
-			c.PoolWorkers = 10
+			c.PoolWorkers = 30
 		}
-		if c.PoolWorkerQueue < 20 {
-			c.PoolWorkerQueue = 20
-		}
-		if c.LogLevel == "" {
-			c.LogLevel = `info`
+		if c.PoolWorkerQueue < 100 {
+			c.PoolWorkerQueue = 1000
 		}
 	}
 	return &C

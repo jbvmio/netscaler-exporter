@@ -10,8 +10,7 @@ import (
 const nsSubsystem = `ns`
 
 var (
-	nsLabels = []string{netscalerInstance}
-
+	nsLabels      = []string{netscalerInstance}
 	nsCPUUsagePct = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,

@@ -72,6 +72,13 @@ func makeCounterRegistry() *prometheus.Registry {
 }
 
 var counterPromCollectors = []prometheus.Collector{
+	lbvserverTotalRequests,
+	lbvserverTotalResponses,
+	lbvserverTotalRequestBytes,
+	lbvserverTotalResponseBytes,
+	lbvserverTotalHits,
+	lbvserverTotalPktsRx,
+	lbvserverTotalPktsTx,
 	servicesTotalRequestBytes,
 	servicesTotalRequests,
 	servicesTotalResponses,
@@ -88,6 +95,13 @@ var allPromCollectors = []prometheus.Collector{
 	exporterAPICollectFailures,
 	exporterProcessingFailures,
 	exporterPromCollectFailures,
+	lbvserverAveCLTTLB,
+	lbvserverState,
+	lbvserverTotalClientTTLBTrans,
+	lbvserverActiveServices,
+	lbvserverSurgeCount,
+	lbvserverSvcSurgeCount,
+	lbvserverVSvrSurgeCount,
 	nsCPUUsagePct,
 	nsMgmtCPUUsagePct,
 	nsMemUsagePct,

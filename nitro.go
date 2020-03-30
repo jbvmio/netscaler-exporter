@@ -49,6 +49,14 @@ func (r RawData) Len() int {
 	return len(r)
 }
 
+// RawMultiData is an aggregated grouping of payloads gathered from the Nitro API.
+type RawMultiData []byte
+
+// Len returns the number of aggregated payloads contained in RawMultiData.
+func (r RawMultiData) Len() int {
+	return len(r)
+}
+
 type metricHandleFunc func(*Pool, *sync.WaitGroup)
 
 func defaultMetricHandleFunc(P *Pool, wg *sync.WaitGroup) {
@@ -56,9 +64,11 @@ func defaultMetricHandleFunc(P *Pool, wg *sync.WaitGroup) {
 }
 
 var metricsMap = map[string]metricHandleFunc{
-	servicesSubsystem: processSvcStats,
-	nsSubsystem:       processNSStats,
-	sslSubsystem:      processSSLStats,
+	servicesSubsystem:  processSvcStats,
+	nsSubsystem:        processNSStats,
+	sslSubsystem:       processSSLStats,
+	lbvserverSubsystem: processLBVServerStats,
+	lbVSvrSvcSubsystem: processLBVServerSvcStats,
 }
 
 // CurState is the current state as returned by the Nitro API.

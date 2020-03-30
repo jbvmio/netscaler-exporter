@@ -1,4 +1,4 @@
-config.yaml
+config*.yaml
 notes.sh
 goBuild.sh
 bin

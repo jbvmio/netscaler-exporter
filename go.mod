@@ -5,7 +5,7 @@ go 1.12
 require (
 	github.com/OneOfOne/xxhash v1.2.7 // indirect
 	github.com/gorilla/mux v1.7.4
-	github.com/jbvmio/netscaler v0.0.0-20200325031330-053dc8771252
+	github.com/jbvmio/netscaler v0.0.0-20200327160959-923a59e37a38
 	github.com/jbvmio/work v0.0.0-20190326173353-ae5c35a42075
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.1 // indirect

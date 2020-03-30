@@ -1,8 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"io/ioutil"
-	"log"
+	"net/http"
 	"sync"
 	"time"
 
@@ -40,10 +41,10 @@ func (v *VIPMap) exists(key string) bool {
 	return there
 }
 
-func (v *VIPMap) getMapping(url, key string, l *zap.Logger) string {
+func (v *VIPMap) getMapping(nsInstance, key string, l *zap.Logger) string {
 	var val string
 	v.lock.Lock()
-	val = v.mappings[url][key]
+	val = v.mappings[nsInstance][key]
 	v.lock.Unlock()
 	l.Debug("Recieved Mapping Request", zap.String("key", key), zap.String("found value", val))
 	return val
@@ -56,24 +57,56 @@ func (v *VIPMap) getMappingYaml() (y []byte, err error) {
 	return
 }
 
-func (v *VIPMap) loadMappingYaml(path string) bool {
+func (v *VIPMap) loadMappingYaml(path string) error {
 	b, err := ioutil.ReadFile(path)
 	if err != nil {
-		log.Println("error loading mapping file:", err)
-		return false
+		return err
 	}
 	err = yaml.Unmarshal(b, &v.mappings)
 	if err != nil {
-		log.Println("error unmarshaling mapping file:", err)
-		return false
+		return err
 	}
-	if len(v.mappings) > 0 {
-		return true
+	if len(v.mappings) < 1 {
+		return fmt.Errorf("loaded mappings file contained zero entries")
 	}
-	return false
+	return nil
 }
 
-func collectMappings(P *Pool, wg *sync.WaitGroup) {
+func (v *VIPMap) loadMappingFromURLYaml(url string) error {
+	resp, err := http.Get(url)
+	if err != nil {
+		return err
+	}
+	if resp.Body != nil {
+		defer resp.Body.Close()
+	}
+	b, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+	err = yaml.Unmarshal(b, &v.mappings)
+	if err != nil {
+		return err
+	}
+	if len(v.mappings) < 1 {
+		return fmt.Errorf("loaded mappings file contained zero entries")
+	}
+	return nil
+}
+
+func (v *VIPMap) saveMappingYaml(path string) error {
+	b, err := yaml.Marshal(v.mappings)
+	if err != nil {
+		return err
+	}
+	err = ioutil.WriteFile(path, b, 0664)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func collectMappings(P *Pool, force bool, wg *sync.WaitGroup) {
 	if wg != nil {
 		defer wg.Done()
 	}
@@ -81,8 +114,39 @@ func collectMappings(P *Pool, wg *sync.WaitGroup) {
 		P.logger.Info("Skipping Mapping Collection, process is stopping")
 		return
 	}
+	switch {
+	case force:
+		P.logger.Info("Refreshing Mappings")
+	case P.lbserver.MappingsURL != "":
+		err := P.vipMap.loadMappingFromURLYaml(P.lbserver.MappingsURL)
+		switch {
+		case err == nil:
+			P.logger.Info("Loaded mappings from url", zap.Int("Total Mappings", len(P.vipMap.mappings[P.nsInstance])))
+			P.mappingsLoaded = true
+			P.vipMap.saveMappingYaml(mappingsDir + `/` + P.nsInstance + `.yaml`)
+			return
+		default:
+			P.logger.Error("could not load mappings from url, received error, trying file ...", zap.Error(err))
+			err := P.vipMap.loadMappingYaml(mappingsDir + `/` + P.nsInstance + `.yaml`)
+			if err == nil {
+				P.logger.Info("Loaded mappings from file", zap.Int("Total Mappings", len(P.vipMap.mappings[P.nsInstance])))
+				P.mappingsLoaded = true
+				return
+			}
+		}
+	default:
+		err := P.vipMap.loadMappingYaml(mappingsDir + `/` + P.nsInstance + `.yaml`)
+		switch {
+		case err == nil:
+			P.logger.Info("Loaded mappings from file", zap.Int("Total Mappings", len(P.vipMap.mappings[P.nsInstance])))
+			P.mappingsLoaded = true
+			return
+		default:
+			P.logger.Warn("could not load default mappings from file, received error", zap.Error(err))
+			P.logger.Info("Collecting Mappings")
+		}
+	}
 	var pr bool
-	P.logger.Info("Collecting Mappings")
 	svcB, err := GetSvcBindings(P.client)
 	if err != nil {
 		P.logger.Error("error retrieving data", zap.Error(err))
@@ -114,7 +178,8 @@ func collectMappings(P *Pool, wg *sync.WaitGroup) {
 	for _, svc := range svcB {
 		tmpMap[svc.ServiceName] = svc.Name
 	}
-	P.vipMap.updateMappings(P.lbserver.URL, tmpMap, P.logger)
+	P.vipMap.updateMappings(P.nsInstance, tmpMap, P.logger)
 	P.logger.Info("Mappings Collection Complete", zap.Int("Total Mappings", len(tmpMap)))
 	P.mappingsLoaded = true
+	P.vipMap.saveMappingYaml(mappingsDir + `/` + P.nsInstance + `.yaml`)
 }

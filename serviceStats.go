@@ -52,9 +52,9 @@ func processSvcStats(P *Pool, wg *sync.WaitGroup) {
 	case P.stopped:
 		P.logger.Info("Skipping sybSystem stat collection, process is stopping", zap.String("subSystem", thisSS))
 	case !P.mappingsLoaded:
-		P.logger.Info("unable to collect subSystem metrics, mapping not yet complete", zap.String("subSystem", thisSS))
+		P.logger.Warn("unable to collect subSystem metrics, mapping not yet complete", zap.String("subSystem", thisSS))
 	default:
-		P.logger.Info("Processing subSystem Stats", zap.String("subSystem", thisSS))
+		P.logger.Debug("Processing subSystem Stats", zap.String("subSystem", thisSS))
 		data := submitAPITask(P, netscaler.StatsTypeService)
 		switch {
 		case len(data) < 1:
@@ -73,7 +73,7 @@ func processSvcStats(P *Pool, wg *sync.WaitGroup) {
 					exporterProcessingFailures.WithLabelValues(P.nsInstance, thisSS).Inc()
 				}
 			}
-			P.logger.Info("subSystem stat collection Complete", zap.String("subSystem", thisSS))
+			P.logger.Debug("subSystem stat collection Complete", zap.String("subSystem", thisSS))
 		}
 	}
 }

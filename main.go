@@ -17,7 +17,7 @@ const (
 	exporterName      = `netscaler-exporter`
 	namespace         = "citrixadc"
 	netscalerInstance = `citrixadc_instance`
-	defaultThreads    = 1
+	mappingsDir       = `/tmp/mappings`
 )
 
 var (
@@ -33,22 +33,22 @@ func main() {
 	pf.StringVarP(&configPath, `config`, `c`, "./config.yaml", `Path to config file.`)
 	pf.Parse(os.Args[1:])
 
-	L := ConfigureLogger(`info`, os.Stdout)
-	metricsChan := make(chan bool)
-
 	config := GetConfig(configPath)
+	var L *zap.Logger
+	switch config.LogLevel {
+	case `trace`:
+		L = ConfigureLogger(`debug`, os.Stdout)
+	default:
+		L = ConfigureLogger(config.LogLevel, os.Stdout)
+	}
+	L.Info("Starting ...", zap.String(`Version`, buildTime), zap.String(`Commit`, commitHash))
+	err := createDir(mappingsDir)
+	if err != nil {
+		L.Error("unable to create mappings directory", zap.Error(err))
+	}
 	for _, lbs := range config.LBServers {
-		client, err := netscaler.NewNitroClient(lbs.URL, lbs.User, lbs.Pass, lbs.IgnoreCert)
-		if err != nil {
-			L.Error("error creating client, skipping nsInstance", zap.String("nsInstance", nsInstance(lbs.URL)), zap.Error(err))
-			continue
-		}
-		err = client.Connect()
-		if err != nil {
-			L.Error("error connecting client, skipping nsInstance", zap.String("nsInstance", nsInstance(lbs.URL)), zap.Error(err))
-			continue
-		}
-		P := newPool(lbs, metricsChan, L)
+		client := netscaler.NewClient(lbs.URL, lbs.User, lbs.Pass, lbs.IgnoreCert)
+		P := newPool(lbs, L, config.LogLevel)
 		P.nsVersion = nsVersion(GetNSVersion(client))
 		P.client = client
 		pools = append(pools, P)
@@ -66,6 +66,7 @@ func main() {
 	handleProm := makeProm(R, L)
 	r := mux.NewRouter()
 	r.Handle(`/metrics`, handleProm)
+	r.PathPrefix(`/mappings/`).Handler(http.StripPrefix(`/mappings/`, http.FileServer(http.Dir(mappingsDir))))
 	httpSrv := http.Server{
 		Handler:      r,
 		Addr:         `:9280`,
