@@ -80,15 +80,6 @@ func newPool(lbs LBServer, logger *zap.Logger, loglevel string) *Pool {
 	if _, there := metricHandlers[servicesSubsystem]; there {
 		pool.collectMappings = true
 	}
-	/*
-		if _, there := metricHandlers[lbvserverSvcSubsystem]; there {
-			metricHandlers[lbvserverSubsystem] = metricsMap[lbvserverSubsystem]
-			pool.processLBVSSvc = true
-		}
-		if _, there := metricHandlers[lbvserverSubsystem]; there {
-			delete(metricHandlers, servicesSubsystem)
-		}
-	*/
 	pool.metricHandlers = metricHandlers
 	clientPool := make([]*netscaler.NitroClient, noClients)
 	for i := 0; i < noClients; i++ {

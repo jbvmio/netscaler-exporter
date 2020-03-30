@@ -1,7 +1,6 @@
 package main
 
 import (
-	"net/http"
 	"sync"
 	"time"
 
@@ -102,8 +101,4 @@ func (p PoolCollection) collectMappings(wg *sync.WaitGroup) {
 			}
 		}
 	}
-}
-
-func (p PoolCollection) handleMappings(w http.ResponseWriter, r *http.Request) {
-
 }
