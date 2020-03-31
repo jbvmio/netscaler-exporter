@@ -25,7 +25,12 @@ func (p *Pool) collectMetrics(wg *sync.WaitGroup) {
 			case p.hasBackoff(s):
 				go handleBackoff(p, s)
 			default:
-				f(p, nil)
+				switch s {
+				case lbvserverSubsystem, gslbVServerSubsystem:
+					go f(p, nil)
+				default:
+					f(p, nil)
+				}
 			}
 		}
 	default:

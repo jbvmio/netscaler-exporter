@@ -61,26 +61,33 @@ func processGSLBVServerStats(P *Pool, wg *sync.WaitGroup) {
 	}
 	thisSS := gslbVServerSubsystem
 	switch {
-	case P.stopped:
-		P.logger.Info("Skipping sybSystem stat collection, process is stopping", zap.String("subSystem", thisSS))
-	default:
-		P.logger.Debug("Processing subSystem Stats", zap.String("subSystem", thisSS))
-		gslbvServers, err := GetGSLBServerServiceStats(P)
+	case P.metricFlipBit[thisSS].good():
+		defer P.metricFlipBit[thisSS].flip()
 		switch {
-		case err != nil:
-			P.logger.Error("error retrieving data for subSystem stat collection", zap.String("subSystem", thisSS))
-			P.insertBackoff(thisSS)
+		case P.stopped:
+			P.logger.Info("Skipping sybSystem stat collection, process is stopping", zap.String("subSystem", thisSS))
 		default:
-			for _, svr := range gslbvServers {
-				req := newNitroDataReq(svr)
-				success := P.submit(req)
-				if !success {
-					exporterProcessingFailures.WithLabelValues(P.nsInstance, thisSS).Inc()
+			P.logger.Debug("Processing subSystem Stats", zap.String("subSystem", thisSS))
+			gslbvServers, err := GetGSLBServerServiceStats(P)
+			switch {
+			case err != nil:
+				P.logger.Error("error retrieving data for subSystem stat collection", zap.String("subSystem", thisSS))
+				P.insertBackoff(thisSS)
+			default:
+				P.logger.Debug("processing lbservice stats", zap.String("subSystem", thisSS), zap.Int("number of lbvservers", len(gslbvServers)))
+				for _, svr := range gslbvServers {
+					req := newNitroDataReq(svr)
+					success := P.submit(req)
+					if !success {
+						exporterProcessingFailures.WithLabelValues(P.nsInstance, thisSS).Inc()
+					}
 				}
+				go TK.set(P.nsInstance, thisSS, float64(time.Now().UnixNano()))
+				P.logger.Debug("subSystem stat collection Complete", zap.String("subSystem", thisSS))
 			}
-			go TK.set(P.nsInstance, thisSS, float64(time.Now().UnixNano()))
-			P.logger.Debug("subSystem stat collection Complete", zap.String("subSystem", thisSS))
 		}
+	default:
+		P.logger.Info("subSystem stat collection already in progress", zap.String("subSystem", thisSS))
 	}
 }
 

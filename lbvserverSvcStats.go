@@ -1,13 +1,5 @@
 package main
 
-import (
-	"sync"
-	"time"
-
-	"github.com/jbvmio/netscaler"
-	"go.uber.org/zap"
-)
-
 // RawSSFromLBVS is a RawLBVServer payload as returned by the Nitro API used to process ServiceStats.
 type RawSSFromLBVS []byte
 
@@ -16,11 +8,12 @@ func (r RawSSFromLBVS) Len() int {
 	return len(r)
 }
 
+/*
 func processLBVServerSvcStats(P *Pool, wg *sync.WaitGroup) {
 	if wg != nil {
 		defer wg.Done()
 	}
-	thisSS := lbVSvrSvcSubsystem
+	thisSS := lbvserverSvcSubsystem
 	switch {
 	case P.stopped:
 		P.logger.Info("Skipping sybSystem stat collection, process is stopping", zap.String("subSystem", thisSS))
@@ -53,3 +46,4 @@ func processLBVServerSvcStats(P *Pool, wg *sync.WaitGroup) {
 		}
 	}
 }
+*/

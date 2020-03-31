@@ -232,43 +232,44 @@ func (p *Pool) nitroRawTask(req work.TaskRequest) {
 				noErr = false
 			}
 		}
-	case RawLBVServerStats:
-		p.logger.Debug("Identified nitroRaw Task Type as RawLBVServerStats", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow))
-		var stats []LBVServerStats
-		tmp := struct {
-			Target *[]LBVServerStats `json:"lbvserver"`
-		}{Target: &stats}
-		err := json.Unmarshal(data, &tmp)
-		if err != nil {
-			p.logger.Error("Recieved nitroRaw Task Error", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow), zap.Error(err))
-			R.ResultChan() <- false
-			close(R.ResultChan())
-			return
-		}
-		p.logger.Debug("Processed RawLBVServerStats", zap.String("TaskType", req.ReqType().String()), zap.Int("Number of Stats", len(stats)), zap.Int64("TaskTS", timeNow))
-		for _, s := range stats {
-			switch len(s.Service) {
-			case 0:
-				datReq := newNitroDataReq(s)
-				success := p.submit(datReq)
-				p.logger.Debug("Sending nitroData Task", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow), zap.Bool("successful", success))
-				if !success {
-					noErr = false
+		/*
+			case RawLBVServerStats:
+				p.logger.Debug("Identified nitroRaw Task Type as RawLBVServerStats", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow))
+				var stats []LBVServerStats
+				tmp := struct {
+					Target *[]LBVServerStats `json:"lbvserver"`
+				}{Target: &stats}
+				err := json.Unmarshal(data, &tmp)
+				if err != nil {
+					p.logger.Error("Recieved nitroRaw Task Error", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow), zap.Error(err))
+					R.ResultChan() <- false
+					close(R.ResultChan())
+					return
 				}
-			default:
-				for _, svc := range s.Service {
-					svc.ServiceName = s.Name
-					datReq := newNitroDataReq(svc)
-					success := p.submit(datReq)
-					p.logger.Debug("Sending nitroData Task", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow), zap.Bool("successful", success))
-					if !success {
-						noErr = false
+				p.logger.Debug("Processed RawLBVServerStats", zap.String("TaskType", req.ReqType().String()), zap.Int("Number of Stats", len(stats)), zap.Int64("TaskTS", timeNow))
+				for _, s := range stats {
+					switch len(s.LBService) {
+					case 0:
+						datReq := newNitroDataReq(s)
+						success := p.submit(datReq)
+						p.logger.Debug("Sending nitroData Task", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow), zap.Bool("successful", success))
+						if !success {
+							noErr = false
+						}
+					default:
+						for _, svc := range s.LBService {
+							svc.ServiceName = s.Name
+							datReq := newNitroDataReq(svc)
+							success := p.submit(datReq)
+							p.logger.Debug("Sending nitroData Task", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow), zap.Bool("successful", success))
+							if !success {
+								noErr = false
+							}
+						}
 					}
 				}
-			}
-		}
-	case RawSSFromLBVS:
-
+			case RawSSFromLBVS:
+		*/
 	case RawNSStats:
 		p.logger.Debug("Identified nitroRaw Task Type as RawNSStats", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow))
 		var stats NSStats
@@ -325,19 +326,24 @@ func (p *Pool) nitroDataTask(req work.TaskRequest) {
 		success = p.submit(promReq)
 		p.logger.Debug("Sending nitroProm Task", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow), zap.Bool("successful", success))
 	case LBVServerStats:
+		/*
+			sub = lbvserverSubsystem
+			p.logger.Debug("Identified nitroData Task Type as LBVServerStats", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow))
+			promReq := newPromTask(data)
+			success = p.submit(promReq)
+			p.logger.Debug("Sending nitroProm Task", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow), zap.Bool("successful", success))
+		*/
 		sub = lbvserverSubsystem
 		p.logger.Debug("Identified nitroData Task Type as LBVServerStats", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow))
 		promReq := newPromTask(data)
 		success = p.submit(promReq)
 		p.logger.Debug("Sending nitroProm Task", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow), zap.Bool("successful", success))
-
 	case GSLBVServerStats:
 		sub = gslbVServerSubsystem
 		p.logger.Debug("Identified nitroData Task Type as GSLBVServerStats", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow))
 		promReq := newPromTask(data)
 		success = p.submit(promReq)
 		p.logger.Debug("Sending nitroProm Task", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow), zap.Bool("successful", success))
-
 	case NSStats:
 		sub = nsSubsystem
 		p.logger.Debug("Identified nitroData Task Type as NSStats", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow))

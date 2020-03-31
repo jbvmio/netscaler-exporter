@@ -161,4 +161,41 @@ func (P *Pool) promLBVServerStats(ss LBVServerStats) {
 	lbvserverSurgeCount.WithLabelValues(P.nsInstance, ss.Name).Set(cast.ToFloat64(ss.SurgeCount))
 	lbvserverSvcSurgeCount.WithLabelValues(P.nsInstance, ss.Name).Set(cast.ToFloat64(ss.SvcSurgeCount))
 	lbvserverVSvrSurgeCount.WithLabelValues(P.nsInstance, ss.Name).Set(cast.ToFloat64(ss.VSvrSurgeCount))
+	for _, svc := range ss.LBService {
+		lbVSvrSvcThroughput.WithLabelValues(P.nsInstance, svc.Name, ss.Name).Set(cast.ToFloat64(svc.Throughput) * 1024 * 1024)
+		lbVSvrSvcAvgTTFB.WithLabelValues(P.nsInstance, svc.Name, ss.Name).Set(cast.ToFloat64(svc.AvgTimeToFirstByte) * 0.001)
+		lbVSvrSvcState.WithLabelValues(P.nsInstance, svc.Name, ss.Name).Set(svc.State.Value())
+		lbVSvrSvcTotalRequests.WithLabelValues(P.nsInstance, svc.Name, ss.Name).Set(cast.ToFloat64(svc.TotalRequests))
+		lbVSvrSvcTotalResponses.WithLabelValues(P.nsInstance, svc.Name, ss.Name).Set(cast.ToFloat64(svc.TotalResponses))
+		lbVSvrSvcTotalRequestBytes.WithLabelValues(P.nsInstance, svc.Name, ss.Name).Set(cast.ToFloat64(svc.TotalRequestBytes))
+		lbVSvrSvcTotalResponseBytes.WithLabelValues(P.nsInstance, svc.Name, ss.Name).Set(cast.ToFloat64(svc.TotalResponseBytes))
+		lbVSvrSvcCurrentClientConns.WithLabelValues(P.nsInstance, svc.Name, ss.Name).Set(cast.ToFloat64(svc.CurrentClientConnections))
+		lbVSvrSvcCurrentServerConns.WithLabelValues(P.nsInstance, svc.Name, ss.Name).Set(cast.ToFloat64(svc.CurrentServerConnections))
+		lbVSvrSvcSurgeCount.WithLabelValues(P.nsInstance, svc.Name, ss.Name).Set(cast.ToFloat64(svc.SurgeCount))
+		lbVSvrSvcServerEstablishedConnections.WithLabelValues(P.nsInstance, svc.Name, ss.Name).Set(cast.ToFloat64(svc.ServerEstablishedConnections))
+		lbVSvrSvcCurrentReusePool.WithLabelValues(P.nsInstance, svc.Name, ss.Name).Set(cast.ToFloat64(svc.CurrentReusePool))
+		lbVSvrSvcMaxClients.WithLabelValues(P.nsInstance, svc.Name, ss.Name).Set(cast.ToFloat64(svc.MaxClients))
+		lbVSvrSvcCurrentLoad.WithLabelValues(P.nsInstance, svc.Name, ss.Name).Set(cast.ToFloat64(svc.CurrentLoad))
+		lbVSvrSvcVirtualServerServiceHits.WithLabelValues(P.nsInstance, svc.Name, ss.Name).Set(cast.ToFloat64(svc.ServiceHits))
+		lbVSvrSvcActiveTransactions.WithLabelValues(P.nsInstance, svc.Name, ss.Name).Set(cast.ToFloat64(svc.ActiveTransactions))
+	}
 }
+
+/*
+func (P *Pool) promLBVServerStatsBak(ss LBVServerStats) {
+	lbvserverAveCLTTLB.WithLabelValues(P.nsInstance, ss.Name).Set(cast.ToFloat64(ss.AvgTimeClientTTLB))
+	lbvserverState.WithLabelValues(P.nsInstance, ss.Name).Set(cast.ToFloat64(ss.State.Value()))
+	lbvserverTotalRequests.WithLabelValues(P.nsInstance, ss.Name).Set(cast.ToFloat64(ss.TotalRequests))
+	lbvserverTotalResponses.WithLabelValues(P.nsInstance, ss.Name).Set(cast.ToFloat64(ss.TotalResponses))
+	lbvserverTotalRequestBytes.WithLabelValues(P.nsInstance, ss.Name).Set(cast.ToFloat64(ss.TotalRequestBytes))
+	lbvserverTotalResponseBytes.WithLabelValues(P.nsInstance, ss.Name).Set(cast.ToFloat64(ss.TotalResponseBytes))
+	lbvserverTotalClientTTLBTrans.WithLabelValues(P.nsInstance, ss.Name).Set(cast.ToFloat64(ss.TotalClientTTLBTransactions))
+	lbvserverActiveServices.WithLabelValues(P.nsInstance, ss.Name).Set(cast.ToFloat64(ss.ActiveServices))
+	lbvserverTotalHits.WithLabelValues(P.nsInstance, ss.Name).Set(cast.ToFloat64(ss.TotalHits))
+	lbvserverTotalPktsRx.WithLabelValues(P.nsInstance, ss.Name).Set(cast.ToFloat64(ss.TotalPktsReceived))
+	lbvserverTotalPktsTx.WithLabelValues(P.nsInstance, ss.Name).Set(cast.ToFloat64(ss.TotalPktsSent))
+	lbvserverSurgeCount.WithLabelValues(P.nsInstance, ss.Name).Set(cast.ToFloat64(ss.SurgeCount))
+	lbvserverSvcSurgeCount.WithLabelValues(P.nsInstance, ss.Name).Set(cast.ToFloat64(ss.SvcSurgeCount))
+	lbvserverVSvrSurgeCount.WithLabelValues(P.nsInstance, ss.Name).Set(cast.ToFloat64(ss.VSvrSurgeCount))
+}
+*/
