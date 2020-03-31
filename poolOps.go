@@ -18,8 +18,8 @@ func (p *Pool) collectMetrics(wg *sync.WaitGroup) {
 	switch {
 	case p.stopped:
 		p.logger.Info("unable to collect metrics, process is stopping")
-	case p.flipBit.good():
-		defer p.flipBit.flip()
+	case p.poolFlipBit.good():
+		defer p.poolFlipBit.flip()
 		for s, f := range p.metricHandlers {
 			switch {
 			case p.hasBackoff(s):

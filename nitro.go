@@ -64,11 +64,12 @@ func defaultMetricHandleFunc(P *Pool, wg *sync.WaitGroup) {
 }
 
 var metricsMap = map[string]metricHandleFunc{
-	servicesSubsystem:  processSvcStats,
-	nsSubsystem:        processNSStats,
-	sslSubsystem:       processSSLStats,
-	lbvserverSubsystem: processLBVServerStats,
-	lbVSvrSvcSubsystem: processLBVServerSvcStats,
+	servicesSubsystem:    processSvcStats,
+	nsSubsystem:          processNSStats,
+	sslSubsystem:         processSSLStats,
+	lbvserverSubsystem:   processLBVServerStats,
+	gslbVServerSubsystem: processGSLBVServerStats,
+	//lbVSvrSvcSubsystem: processLBVServerSvcStats,
 }
 
 // CurState is the current state as returned by the Nitro API.

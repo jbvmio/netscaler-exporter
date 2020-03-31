@@ -20,10 +20,10 @@ type Pool struct {
 	poolIdx         *ring.Ring
 	poolLock        *sync.Mutex
 	poolWG          sync.WaitGroup
-	metricHandlers  map[string]metricHandleFunc
 	backoff         *MiscMap
-	flipBit         *FlipBit
-	lbsvcFlipBit    *FlipBit
+	poolFlipBit     *FlipBit
+	metricHandlers  map[string]metricHandleFunc
+	metricFlipBit   map[string]*FlipBit
 	lbserver        LBServer
 	nsInstance      string
 	vipMap          VIPMap
@@ -42,13 +42,13 @@ func newPool(lbs LBServer, logger *zap.Logger, loglevel string) *Pool {
 	conf.WorkerQueueSize = lbs.PoolWorkerQueue
 	team := work.NewTeam(conf)
 	pool := Pool{
-		team:         team,
-		poolIdx:      ring.New(noClients),
-		poolLock:     &sync.Mutex{},
-		poolWG:       sync.WaitGroup{},
-		lbserver:     lbs,
-		flipBit:      &FlipBit{lock: sync.Mutex{}},
-		lbsvcFlipBit: &FlipBit{lock: sync.Mutex{}},
+		team:          team,
+		poolIdx:       ring.New(noClients),
+		poolLock:      &sync.Mutex{},
+		poolWG:        sync.WaitGroup{},
+		lbserver:      lbs,
+		poolFlipBit:   &FlipBit{lock: sync.Mutex{}},
+		metricFlipBit: make(map[string]*FlipBit, len(lbs.Metrics)),
 		backoff: &MiscMap{
 			data: make(map[string]interface{}, len(lbs.Metrics)),
 			lock: sync.Mutex{},
@@ -73,6 +73,7 @@ func newPool(lbs LBServer, logger *zap.Logger, loglevel string) *Pool {
 		case ok:
 			pool.logger.Info("registering metric", zap.String("metric", m))
 			metricHandlers[m] = metricsMap[m]
+			pool.metricFlipBit[m] = &FlipBit{lock: sync.Mutex{}}
 		default:
 			pool.logger.Warn("invalid metric", zap.String("metric", m))
 		}
@@ -329,6 +330,14 @@ func (p *Pool) nitroDataTask(req work.TaskRequest) {
 		promReq := newPromTask(data)
 		success = p.submit(promReq)
 		p.logger.Debug("Sending nitroProm Task", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow), zap.Bool("successful", success))
+
+	case GSLBVServerStats:
+		sub = gslbVServerSubsystem
+		p.logger.Debug("Identified nitroData Task Type as GSLBVServerStats", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow))
+		promReq := newPromTask(data)
+		success = p.submit(promReq)
+		p.logger.Debug("Sending nitroProm Task", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow), zap.Bool("successful", success))
+
 	case NSStats:
 		sub = nsSubsystem
 		p.logger.Debug("Identified nitroData Task Type as NSStats", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow))
@@ -360,8 +369,11 @@ func (p *Pool) nitroPromTask(req work.TaskRequest) {
 		p.logger.Debug("Identified nitroProm Task Type as ServiceStats", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow))
 		p.promSvcStats(data)
 	case LBVServerStats:
-		p.logger.Debug("Identified nitroProm Task Type as ServiceStats", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow))
+		p.logger.Debug("Identified nitroProm Task Type as LBVServerStats", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow))
 		p.promLBVServerStats(data)
+	case GSLBVServerStats:
+		p.logger.Debug("Identified nitroProm Task Type as GSLBVServerStats", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow))
+		p.promGSLBVServerStats(data)
 	case NSStats:
 		p.logger.Debug("Identified nitroProm Task Type as NSStats", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow))
 		p.promNSStats(data)

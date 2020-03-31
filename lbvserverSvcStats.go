@@ -32,7 +32,8 @@ func processLBVServerSvcStats(P *Pool, wg *sync.WaitGroup) {
 			P.logger.Error("error retrieving data for subSystem stat collection", zap.String("subSystem", thisSS))
 			exporterAPICollectFailures.WithLabelValues(P.nsInstance, thisSS).Inc()
 			P.insertBackoff(thisSS)
-		case P.lbsvcFlipBit.good():
+		case P.metricFlipBit[thisSS].good():
+			defer P.metricFlipBit[thisSS].flip()
 			req := newNitroRawReq(RawSSFromLBVS(data))
 			P.submit(req)
 			s := <-req.ResultChan()

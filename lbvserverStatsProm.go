@@ -148,7 +148,7 @@ var (
 
 func (P *Pool) promLBVServerStats(ss LBVServerStats) {
 	lbvserverAveCLTTLB.WithLabelValues(P.nsInstance, ss.Name).Set(cast.ToFloat64(ss.AvgTimeClientTTLB))
-	lbvserverState.WithLabelValues(P.nsInstance, ss.Name).Set(cast.ToFloat64(ss.State.Value))
+	lbvserverState.WithLabelValues(P.nsInstance, ss.Name).Set(cast.ToFloat64(ss.State.Value()))
 	lbvserverTotalRequests.WithLabelValues(P.nsInstance, ss.Name).Set(cast.ToFloat64(ss.TotalRequests))
 	lbvserverTotalResponses.WithLabelValues(P.nsInstance, ss.Name).Set(cast.ToFloat64(ss.TotalResponses))
 	lbvserverTotalRequestBytes.WithLabelValues(P.nsInstance, ss.Name).Set(cast.ToFloat64(ss.TotalRequestBytes))
