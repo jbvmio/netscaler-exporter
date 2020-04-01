@@ -9,150 +9,150 @@ import (
 // https://developer-docs.citrix.com/projects/netscaler-nitro-api/en/12.0/statistics/gslb/gslbservice/
 
 const (
-	gslbVServerSubsystem    = `gslbvserver`
-	gslbVServerSvcSubsystem = `gslbservice`
+	gslbVServerSubsystem    = `gslb_vserver`
+	gslbVServerSvcSubsystem = `gslb_service`
 )
 
 var (
-	gslbvserverLabels           = []string{netscalerInstance, `citrixadc_gslb_name`}
-	gslbvserverEstablishedConns = prometheus.NewGaugeVec(
+	gslbVServerLabels           = []string{netscalerInstance, `citrixadc_gslb_name`}
+	gslbVServerEstablishedConns = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
 			Subsystem: gslbVServerSubsystem,
 			Name:      "established_connections",
 			Help:      "Number of client connections in ESTABLISHED state",
 		},
-		gslbvserverLabels,
+		gslbVServerLabels,
 	)
 
-	gslbvserverState = prometheus.NewGaugeVec(
+	gslbVServerState = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
 			Subsystem: gslbVServerSubsystem,
 			Name:      "state",
 			Help:      "Current state of the server. 0 = DOWN, 1 = UP, 2 = OUT OF SERVICE, 3 = UNKNOWN",
 		},
-		gslbvserverLabels,
+		gslbVServerLabels,
 	)
 
-	gslbvserverHealth = prometheus.NewGaugeVec(
+	gslbVServerHealth = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
 			Subsystem: gslbVServerSubsystem,
 			Name:      "health",
 			Help:      "Health of the vserver. Gives percentage of UP services bound to this vserver",
 		},
-		gslbvserverLabels,
+		gslbVServerLabels,
 	)
 
-	gslbvserverActiveServices = prometheus.NewGaugeVec(
+	gslbVServerActiveServices = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
 			Subsystem: gslbVServerSubsystem,
 			Name:      "active_services",
 			Help:      "Number of ACTIVE services bound to a vserver",
 		},
-		gslbvserverLabels,
+		gslbVServerLabels,
 	)
 
-	gslbvserverTotalHits = prometheus.NewGaugeVec(
+	gslbVServerTotalHits = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
 			Subsystem: gslbVServerSubsystem,
 			Name:      "hits_total",
 			Help:      "Total vserver hits",
 		},
-		gslbvserverLabels,
+		gslbVServerLabels,
 	)
 
-	gslbvserverTotalRequestBytes = prometheus.NewGaugeVec(
+	gslbVServerTotalRequestBytes = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
 			Subsystem: gslbVServerSubsystem,
 			Name:      "request_bytes_total",
 			Help:      "Total number of request bytes received on this virtual server",
 		},
-		gslbvserverLabels,
+		gslbVServerLabels,
 	)
 
-	gslbvserverTotalResponseBytes = prometheus.NewGaugeVec(
+	gslbVServerTotalResponseBytes = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
 			Subsystem: gslbVServerSubsystem,
 			Name:      "response_bytes_total",
 			Help:      "Total number of response bytes received on this virtual server",
 		},
-		gslbvserverLabels,
+		gslbVServerLabels,
 	)
 )
 
 var (
-	gslbvserverSvcLabels = []string{netscalerInstance, `citrixadc_gslb_name`, `citrixadc_gslbservice_name`}
+	gslbVServerSvcLabels = []string{netscalerInstance, `citrixadc_gslb_name`, `citrixadc_gslb_service_name`}
 
-	gslbservicesEstablishedConns = prometheus.NewGaugeVec(
+	gslbServicesEstablishedConns = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
 			Subsystem: gslbVServerSvcSubsystem,
 			Name:      "established_connections",
 			Help:      "Number of client connections in ESTABLISHED state",
 		},
-		gslbvserverSvcLabels,
+		gslbVServerSvcLabels,
 	)
 
-	gslbservicesState = prometheus.NewGaugeVec(
+	gslbServicesState = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
 			Subsystem: gslbVServerSvcSubsystem,
 			Name:      "state",
 			Help:      "Current state of the service. 0 = DOWN, 1 = UP, 2 = OUT OF SERVICE, 3 = UNKNOWN",
 		},
-		gslbvserverSvcLabels,
+		gslbVServerSvcLabels,
 	)
 
-	gslbservicesTotalRequestBytes = prometheus.NewGaugeVec(
+	gslbServicesTotalRequestBytes = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
 			Subsystem: gslbVServerSvcSubsystem,
 			Name:      "request_bytes_total",
 			Help:      "Total number of request bytes received on this service",
 		},
-		gslbvserverSvcLabels,
+		gslbVServerSvcLabels,
 	)
 
-	gslbservicesTotalResponseBytes = prometheus.NewGaugeVec(
+	gslbServicesTotalResponseBytes = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
 			Subsystem: gslbVServerSvcSubsystem,
 			Name:      "response_bytes_total",
 			Help:      "Total number of response bytes received on this service",
 		},
-		gslbvserverSvcLabels,
+		gslbVServerSvcLabels,
 	)
 
-	gsservicesVirtualServerServiceHits = prometheus.NewGaugeVec(
+	gslbServicesHits = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
 			Subsystem: gslbVServerSvcSubsystem,
-			Name:      "vserver_service_hits",
+			Name:      "hits_total",
 			Help:      "Number of times that the service has been provided",
 		},
-		gslbvserverSvcLabels,
+		gslbVServerSvcLabels,
 	)
 )
 
 func (P *Pool) promGSLBVServerStats(ss GSLBVServerStats) {
-	gslbvserverEstablishedConns.WithLabelValues(P.nsInstance, ss.Name).Set(cast.ToFloat64(ss.EstablishedConnections))
-	gslbvserverState.WithLabelValues(P.nsInstance, ss.Name).Set(cast.ToFloat64(ss.State.Value()))
-	gslbvserverHealth.WithLabelValues(P.nsInstance, ss.Name).Set(cast.ToFloat64(ss.Health))
-	gslbvserverActiveServices.WithLabelValues(P.nsInstance, ss.Name).Set(cast.ToFloat64(ss.ActiveServices))
-	gslbvserverTotalHits.WithLabelValues(P.nsInstance, ss.Name).Set(cast.ToFloat64(ss.TotalHits))
-	gslbvserverTotalRequestBytes.WithLabelValues(P.nsInstance, ss.Name).Set(cast.ToFloat64(ss.TotalRequestBytes))
-	gslbvserverTotalResponseBytes.WithLabelValues(P.nsInstance, ss.Name).Set(cast.ToFloat64(ss.TotalResponseBytes))
+	gslbVServerEstablishedConns.WithLabelValues(P.nsInstance, ss.Name).Set(cast.ToFloat64(ss.EstablishedConnections))
+	gslbVServerState.WithLabelValues(P.nsInstance, ss.Name).Set(cast.ToFloat64(ss.State.Value()))
+	gslbVServerHealth.WithLabelValues(P.nsInstance, ss.Name).Set(cast.ToFloat64(ss.Health))
+	gslbVServerActiveServices.WithLabelValues(P.nsInstance, ss.Name).Set(cast.ToFloat64(ss.ActiveServices))
+	gslbVServerTotalHits.WithLabelValues(P.nsInstance, ss.Name).Set(cast.ToFloat64(ss.TotalHits))
+	gslbVServerTotalRequestBytes.WithLabelValues(P.nsInstance, ss.Name).Set(cast.ToFloat64(ss.TotalRequestBytes))
+	gslbVServerTotalResponseBytes.WithLabelValues(P.nsInstance, ss.Name).Set(cast.ToFloat64(ss.TotalResponseBytes))
 	for _, svc := range ss.GSLBService {
-		gslbservicesState.WithLabelValues(P.nsInstance, ss.Name, svc.ServiceName).Set(cast.ToFloat64(svc.State.Value()))
-		gslbservicesEstablishedConns.WithLabelValues(P.nsInstance, ss.Name, svc.ServiceName).Set(cast.ToFloat64(svc.EstablishedConnections))
-		gslbservicesTotalRequestBytes.WithLabelValues(P.nsInstance, ss.Name, svc.ServiceName).Set(cast.ToFloat64(svc.TotalRequestBytes))
-		gslbservicesTotalResponseBytes.WithLabelValues(P.nsInstance, ss.Name, svc.ServiceName).Set(cast.ToFloat64(svc.TotalResponseBytes))
-		gsservicesVirtualServerServiceHits.WithLabelValues(P.nsInstance, ss.Name, svc.ServiceName).Set(cast.ToFloat64(svc.ServiceHits))
+		gslbServicesEstablishedConns.WithLabelValues(P.nsInstance, ss.Name, svc.ServiceName).Set(cast.ToFloat64(svc.EstablishedConnections))
+		gslbServicesHits.WithLabelValues(P.nsInstance, ss.Name, svc.ServiceName).Set(cast.ToFloat64(svc.ServiceHits))
+		gslbServicesState.WithLabelValues(P.nsInstance, ss.Name, svc.ServiceName).Set(cast.ToFloat64(svc.State.Value()))
+		gslbServicesTotalRequestBytes.WithLabelValues(P.nsInstance, ss.Name, svc.ServiceName).Set(cast.ToFloat64(svc.TotalRequestBytes))
+		gslbServicesTotalResponseBytes.WithLabelValues(P.nsInstance, ss.Name, svc.ServiceName).Set(cast.ToFloat64(svc.TotalResponseBytes))
 	}
 }
