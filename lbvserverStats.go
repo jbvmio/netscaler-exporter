@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"math"
 	"sync"
 	"time"
@@ -84,36 +85,41 @@ func processLBVServerStats(P *Pool, wg *sync.WaitGroup) {
 			P.logger.Info("Skipping sybSystem stat collection, process is stopping", zap.String("subSystem", thisSS))
 		default:
 			P.logger.Debug("Processing subSystem Stats", zap.String("subSystem", thisSS))
-			lbvServers, err := GetLBServerServiceStats(P)
+			fails, err := GetLBServerServiceStats(P)
 			switch {
 			case err != nil:
 				P.logger.Error("error retrieving data for subSystem stat collection", zap.String("subSystem", thisSS))
 				P.insertBackoff(thisSS)
 			default:
-				P.logger.Debug("processing lbservice stats", zap.String("subSystem", thisSS), zap.Int("number of lbvservers", len(lbvServers)))
-				for _, svr := range lbvServers {
-					req := newNitroDataReq(svr)
-					success := P.submit(req)
-					if !success {
-						exporterProcessingFailures.WithLabelValues(P.nsInstance, thisSS).Inc()
+				/*
+					P.logger.Debug("processing lbservice stats", zap.String("subSystem", thisSS), zap.Int("number of lbvservers", len(lbvServers)))
+					for _, svr := range lbvServers {
+						req := newNitroDataReq(svr)
+						success := P.submit(req)
+						if !success {
+							exporterProcessingFailures.WithLabelValues(P.nsInstance, thisSS).Inc()
+						}
 					}
+				*/
+				if fails > 0 {
+					exporterProcessingFailures.WithLabelValues(P.nsInstance, thisSS).Add(fails)
 				}
 				go TK.set(P.nsInstance, thisSS, float64(time.Now().UnixNano()))
 				P.logger.Debug("subSystem stat collection Complete", zap.String("subSystem", thisSS))
 			}
 		}
 	default:
-		P.logger.Info("subSystem stat collection already in progress", zap.String("subSystem", thisSS))
+		P.logger.Debug("subSystem stat collection already in progress", zap.String("subSystem", thisSS))
 	}
 }
 
-// GetLBServerServiceStats retrieves stats for both GSLBServers and GSLBServices.
-func GetLBServerServiceStats(P *Pool) ([]LBVServerStats, error) {
-	var lbVServers []LBVServerStats
+// GetLBServerServiceStats retrieves stats for both LBServers and LBServices.
+func GetLBServerServiceStats(P *Pool) (failures float64, err error) {
+	//var lbVServers []LBVServerStats
 	servers, err := getLBVServerStats(P.client)
 	if err != nil {
 		exporterAPICollectFailures.WithLabelValues(P.nsInstance, lbvserverSubsystem).Inc()
-		return lbVServers, err
+		return 0, err
 	}
 	svcChan := make(chan []LBVServerStats, len(servers)+1)
 	errChan := make(chan bool, len(servers)+1)
@@ -158,14 +164,73 @@ func GetLBServerServiceStats(P *Pool) ([]LBVServerStats, error) {
 	for i := 0; i < len(servers); i++ {
 		select {
 		case <-errChan:
-			exporterProcessingFailures.WithLabelValues(P.nsInstance, lbvserverSvcSubsystem).Inc()
+			// Instrument Missing Counter Here
+			//exporterProcessingFailures.WithLabelValues(P.nsInstance, lbvserverSvcSubsystem).Inc()
 		case s := <-svcChan:
-			lbVServers = append(lbVServers, s...)
+			//lbVServers = append(lbVServers, s...)
+			for _, svr := range s {
+				req := newNitroDataReq(svr)
+				success := P.submit(req)
+				if !success {
+					failures++
+					//exporterProcessingFailures.WithLabelValues(P.nsInstance, lbvserverSubsystem).Inc()
+				}
+			}
+
 		}
+	}
+	return failures, nil
+}
+
+func getLBVServerStats(client *netscaler.NitroClient, target ...string) ([]LBVServerStats, error) {
+	var lbVServers []LBVServerStats
+	var b []byte
+	var err error
+	switch len(target) {
+	case 0:
+		b, err = client.GetAll(netscaler.StatsTypeLBVServer)
+	default:
+		svr := target[0]
+		b, err = client.Get(netscaler.StatsTypeLBVServer, svr+`?statbindings=yes`)
+	}
+	if err != nil {
+		return lbVServers, err
+	}
+	tmp := struct {
+		Target *[]LBVServerStats `json:"lbvserver"`
+	}{Target: &lbVServers}
+	err = json.Unmarshal(b, &tmp)
+	if err != nil {
+		return lbVServers, err
 	}
 	return lbVServers, nil
 }
 
+func getLBVServerStats2(P *Pool, target ...string) ([]LBVServerStats, error) {
+	var lbVServers []LBVServerStats
+	var b []byte
+	var err error
+	switch len(target) {
+	case 0:
+		b = submitAPITask(P, netscaler.StatsTypeLBVServer)
+	default:
+		svr := target[0]
+		b = submitAPITask(P, netscaler.StatsTypeLBVServer, svr+`?statbindings=yes`)
+	}
+	if len(b) < 1 {
+		return lbVServers, fmt.Errorf("error receiving data")
+	}
+	tmp := struct {
+		Target *[]LBVServerStats `json:"lbvserver"`
+	}{Target: &lbVServers}
+	err = json.Unmarshal(b, &tmp)
+	if err != nil {
+		return lbVServers, err
+	}
+	return lbVServers, nil
+}
+
+/*
 // GetLBServerServiceStatsOrig retrieves stats for both GSLBServers and GSLBServices.
 func GetLBServerServiceStatsOrig(P *Pool) ([]LBVServerStats, error) {
 	var lbVServers []LBVServerStats
@@ -193,27 +258,4 @@ func GetLBServerServiceStatsOrig(P *Pool) ([]LBVServerStats, error) {
 	}
 	return lbVServers, nil
 }
-
-func getLBVServerStats(client *netscaler.NitroClient, target ...string) ([]LBVServerStats, error) {
-	var lbVServers []LBVServerStats
-	var b []byte
-	var err error
-	switch len(target) {
-	case 0:
-		b, err = client.GetAll(netscaler.StatsTypeLBVServer)
-	default:
-		svr := target[0]
-		b, err = client.Get(netscaler.StatsTypeLBVServer, svr+`?statbindings=yes`)
-	}
-	if err != nil {
-		return lbVServers, err
-	}
-	tmp := struct {
-		Target *[]LBVServerStats `json:"lbvserver"`
-	}{Target: &lbVServers}
-	err = json.Unmarshal(b, &tmp)
-	if err != nil {
-		return lbVServers, err
-	}
-	return lbVServers, nil
-}
+*/

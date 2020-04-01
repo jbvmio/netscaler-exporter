@@ -26,7 +26,7 @@ func (p *Pool) collectMetrics(wg *sync.WaitGroup) {
 				go handleBackoff(p, s)
 			default:
 				switch s {
-				case lbvserverSubsystem, gslbVServerSubsystem:
+				case lbvserverSubsystem:
 					go f(p, nil)
 				default:
 					f(p, nil)
@@ -51,8 +51,11 @@ func (p *Pool) hasBackoff(subSystem string) bool {
 }
 
 func handleBackoff(p *Pool, subSystem string) {
-	ok := p.backoff.Get(subSystem).(*FlipBit)
-	if ok.good() {
+	fb, ok := p.backoff.Get(subSystem).(*FlipBit)
+	switch {
+	case !ok:
+		p.logger.Error("recieved nil backoff", zap.String("subSystem", subSystem))
+	case fb.good():
 		defer p.backoff.Remove(subSystem)
 		p.logger.Info("performing backoff for subSystem metric collection", zap.String("subSystem", subSystem))
 		time.Sleep(time.Second * backoffTime)

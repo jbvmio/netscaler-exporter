@@ -45,29 +45,35 @@ func processNSStats(P *Pool, wg *sync.WaitGroup) {
 	}
 	thisSS := nsSubsystem
 	switch {
-	case P.stopped:
-		P.logger.Info("Skipping sybSystem stat collection, process is stopping", zap.String("subSystem", thisSS))
-	default:
-		P.logger.Debug("Processing subSystem Stats", zap.String("subSystem", thisSS))
-		data := submitAPITask(P, netscaler.StatsTypeNS)
+	case P.metricFlipBit[thisSS].good():
+		defer P.metricFlipBit[thisSS].flip()
 		switch {
-		case len(data) < 1:
-			P.logger.Error("error retrieving data for subSystem stat collection", zap.String("subSystem", thisSS))
-			exporterAPICollectFailures.WithLabelValues(P.nsInstance, thisSS).Inc()
-			P.insertBackoff(thisSS)
+		case P.stopped:
+			P.logger.Info("Skipping sybSystem stat collection, process is stopping", zap.String("subSystem", thisSS))
 		default:
-			req := newNitroRawReq(RawNSStats(data))
-			P.submit(req)
-			s := <-req.ResultChan()
-			if success, ok := s.(bool); ok {
-				switch {
-				case success:
-					go TK.set(P.nsInstance, thisSS, float64(time.Now().UnixNano()))
-				default:
-					exporterProcessingFailures.WithLabelValues(P.nsInstance, thisSS).Inc()
+			P.logger.Debug("Processing subSystem Stats", zap.String("subSystem", thisSS))
+			data := submitAPITask(P, netscaler.StatsTypeNS)
+			switch {
+			case len(data) < 1:
+				P.logger.Error("error retrieving data for subSystem stat collection", zap.String("subSystem", thisSS))
+				exporterAPICollectFailures.WithLabelValues(P.nsInstance, thisSS).Inc()
+				P.insertBackoff(thisSS)
+			default:
+				req := newNitroRawReq(RawNSStats(data))
+				P.submit(req)
+				s := <-req.ResultChan()
+				if success, ok := s.(bool); ok {
+					switch {
+					case success:
+						go TK.set(P.nsInstance, thisSS, float64(time.Now().UnixNano()))
+					default:
+						exporterProcessingFailures.WithLabelValues(P.nsInstance, thisSS).Inc()
+					}
 				}
+				P.logger.Debug("subSystem stat collection Complete", zap.String("subSystem", thisSS))
 			}
-			P.logger.Debug("subSystem stat collection Complete", zap.String("subSystem", thisSS))
 		}
+	default:
+		P.logger.Debug("subSystem stat collection already in progress", zap.String("subSystem", thisSS))
 	}
 }

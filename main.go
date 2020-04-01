@@ -47,11 +47,19 @@ func main() {
 		L.Error("unable to create mappings directory", zap.Error(err))
 	}
 	for _, lbs := range config.LBServers {
-		client := netscaler.NewClient(lbs.URL, lbs.User, lbs.Pass, lbs.IgnoreCert)
-		P := newPool(lbs, L, config.LogLevel)
-		P.nsVersion = nsVersion(GetNSVersion(client))
-		P.client = client
-		pools = append(pools, P)
+		client, err := netscaler.NewSessionClient(lbs.URL, lbs.User, lbs.Pass, lbs.IgnoreCert)
+		errd := client.Connect()
+		switch {
+		case err != nil:
+			L.Error("error creating session client for nsInstance, skipping ...", zap.String(`nsInstance`, nsInstance(lbs.URL)), zap.Error(err))
+		case errd != nil:
+			L.Error("error connecting session client for nsInstance, skipping ...", zap.String(`nsInstance`, nsInstance(lbs.URL)), zap.Error(err))
+		default:
+			P := newPool(lbs, L, config.LogLevel)
+			P.nsVersion = nsVersion(GetNSVersion(client))
+			P.client = client
+			pools = append(pools, P)
+		}
 	}
 	if len(pools) < 1 {
 		L.Fatal("no valid nsInstances available, exiting")
@@ -60,7 +68,7 @@ func main() {
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 
-	pools.collectMappings(nil)
+	//pools.collectMappings(nil)
 
 	R := makeCounterRegistry()
 	handleProm := makeProm(R, L)

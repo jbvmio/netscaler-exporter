@@ -87,7 +87,7 @@ func processGSLBVServerStats(P *Pool, wg *sync.WaitGroup) {
 			}
 		}
 	default:
-		P.logger.Info("subSystem stat collection already in progress", zap.String("subSystem", thisSS))
+		P.logger.Debug("subSystem stat collection already in progress", zap.String("subSystem", thisSS))
 	}
 }
 

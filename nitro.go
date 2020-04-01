@@ -69,7 +69,6 @@ var metricsMap = map[string]metricHandleFunc{
 	sslSubsystem:         processSSLStats,
 	lbvserverSubsystem:   processLBVServerStats,
 	gslbVServerSubsystem: processGSLBVServerStats,
-	//lbVSvrSvcSubsystem: processLBVServerSvcStats,
 }
 
 // CurState is the current state as returned by the Nitro API.

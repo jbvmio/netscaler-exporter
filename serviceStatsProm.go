@@ -13,7 +13,7 @@ import (
 const servicesSubsystem = "service"
 
 var (
-	servicesLabels     = []string{netscalerInstance, `citrixadc_service_name`, `citrixadc_lb_name`}
+	servicesLabels     = []string{netscalerInstance, `citrixadc_service_name`}
 	servicesThroughput = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
@@ -178,23 +178,23 @@ var (
 func (P *Pool) promSvcStats(ss ServiceStats) {
 	P.logger.Debug("recieved ServiceStat", zap.String("Received", fmt.Sprintf("%+v", ss)))
 	// Value is in megabytes. Convert to base unit of bytes.
-	servicesThroughput.WithLabelValues(P.nsInstance, ss.Name, ss.ServiceName).Set(cast.ToFloat64(ss.Throughput) * 1024 * 1024)
+	servicesThroughput.WithLabelValues(P.nsInstance, ss.Name).Set(cast.ToFloat64(ss.Throughput) * 1024 * 1024)
 	// Value is in milliseconds. Convert to base unit of seconds.
-	servicesAvgTTFB.WithLabelValues(P.nsInstance, ss.Name, ss.ServiceName).Set(cast.ToFloat64(ss.AvgTimeToFirstByte) * 0.001)
-	servicesState.WithLabelValues(P.nsInstance, ss.Name, ss.ServiceName).Set(ss.State.Value())
-	servicesTotalRequests.WithLabelValues(P.nsInstance, ss.Name, ss.ServiceName).Set(cast.ToFloat64(ss.TotalRequests))
-	servicesTotalResponses.WithLabelValues(P.nsInstance, ss.Name, ss.ServiceName).Set(cast.ToFloat64(ss.TotalResponses))
-	servicesTotalRequestBytes.WithLabelValues(P.nsInstance, ss.Name, ss.ServiceName).Set(cast.ToFloat64(ss.TotalRequestBytes))
-	servicesTotalResponseBytes.WithLabelValues(P.nsInstance, ss.Name, ss.ServiceName).Set(cast.ToFloat64(ss.TotalResponseBytes))
-	servicesCurrentClientConns.WithLabelValues(P.nsInstance, ss.Name, ss.ServiceName).Set(cast.ToFloat64(ss.CurrentClientConnections))
-	servicesCurrentServerConns.WithLabelValues(P.nsInstance, ss.Name, ss.ServiceName).Set(cast.ToFloat64(ss.CurrentServerConnections))
-	servicesSurgeCount.WithLabelValues(P.nsInstance, ss.Name, ss.ServiceName).Set(cast.ToFloat64(ss.SurgeCount))
-	servicesServerEstablishedConnections.WithLabelValues(P.nsInstance, ss.Name, ss.ServiceName).Set(cast.ToFloat64(ss.ServerEstablishedConnections))
-	servicesCurrentReusePool.WithLabelValues(P.nsInstance, ss.Name, ss.ServiceName).Set(cast.ToFloat64(ss.CurrentReusePool))
-	servicesMaxClients.WithLabelValues(P.nsInstance, ss.Name, ss.ServiceName).Set(cast.ToFloat64(ss.MaxClients))
-	servicesCurrentLoad.WithLabelValues(P.nsInstance, ss.Name, ss.ServiceName).Set(cast.ToFloat64(ss.CurrentLoad))
-	servicesVirtualServerServiceHits.WithLabelValues(P.nsInstance, ss.Name, ss.ServiceName).Set(cast.ToFloat64(ss.ServiceHits))
-	servicesActiveTransactions.WithLabelValues(P.nsInstance, ss.Name, ss.ServiceName).Set(cast.ToFloat64(ss.ActiveTransactions))
+	servicesAvgTTFB.WithLabelValues(P.nsInstance, ss.Name).Set(cast.ToFloat64(ss.AvgTimeToFirstByte) * 0.001)
+	servicesState.WithLabelValues(P.nsInstance, ss.Name).Set(ss.State.Value())
+	servicesTotalRequests.WithLabelValues(P.nsInstance, ss.Name).Set(cast.ToFloat64(ss.TotalRequests))
+	servicesTotalResponses.WithLabelValues(P.nsInstance, ss.Name).Set(cast.ToFloat64(ss.TotalResponses))
+	servicesTotalRequestBytes.WithLabelValues(P.nsInstance, ss.Name).Set(cast.ToFloat64(ss.TotalRequestBytes))
+	servicesTotalResponseBytes.WithLabelValues(P.nsInstance, ss.Name).Set(cast.ToFloat64(ss.TotalResponseBytes))
+	servicesCurrentClientConns.WithLabelValues(P.nsInstance, ss.Name).Set(cast.ToFloat64(ss.CurrentClientConnections))
+	servicesCurrentServerConns.WithLabelValues(P.nsInstance, ss.Name).Set(cast.ToFloat64(ss.CurrentServerConnections))
+	servicesSurgeCount.WithLabelValues(P.nsInstance, ss.Name).Set(cast.ToFloat64(ss.SurgeCount))
+	servicesServerEstablishedConnections.WithLabelValues(P.nsInstance, ss.Name).Set(cast.ToFloat64(ss.ServerEstablishedConnections))
+	servicesCurrentReusePool.WithLabelValues(P.nsInstance, ss.Name).Set(cast.ToFloat64(ss.CurrentReusePool))
+	servicesMaxClients.WithLabelValues(P.nsInstance, ss.Name).Set(cast.ToFloat64(ss.MaxClients))
+	servicesCurrentLoad.WithLabelValues(P.nsInstance, ss.Name).Set(cast.ToFloat64(ss.CurrentLoad))
+	servicesVirtualServerServiceHits.WithLabelValues(P.nsInstance, ss.Name).Set(cast.ToFloat64(ss.ServiceHits))
+	servicesActiveTransactions.WithLabelValues(P.nsInstance, ss.Name).Set(cast.ToFloat64(ss.ActiveTransactions))
 }
 
 // External Counters:

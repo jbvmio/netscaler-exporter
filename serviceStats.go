@@ -19,7 +19,6 @@ func (r RawServiceStats) Len() int {
 // ServiceStats represents the data returned from the /stat/service Nitro API endpoint
 type ServiceStats struct {
 	Name                         string   `json:"name"`
-	ServiceName                  string   `json:"servicename"`
 	Throughput                   string   `json:"throughput"`
 	AvgTimeToFirstByte           string   `json:"avgsvrttfb"`
 	State                        CurState `json:"state"`
@@ -49,31 +48,35 @@ func processSvcStats(P *Pool, wg *sync.WaitGroup) {
 	}
 	thisSS := servicesSubsystem
 	switch {
-	case P.stopped:
-		P.logger.Info("Skipping sybSystem stat collection, process is stopping", zap.String("subSystem", thisSS))
-	case !P.mappingsLoaded:
-		P.logger.Warn("unable to collect subSystem metrics, mapping not yet complete", zap.String("subSystem", thisSS))
-	default:
-		P.logger.Debug("Processing subSystem Stats", zap.String("subSystem", thisSS))
-		data := submitAPITask(P, netscaler.StatsTypeService)
+	case P.metricFlipBit[thisSS].good():
+		defer P.metricFlipBit[thisSS].flip()
 		switch {
-		case len(data) < 1:
-			P.logger.Error("error retrieving data for subSystem stat collection", zap.String("subSystem", thisSS))
-			exporterAPICollectFailures.WithLabelValues(P.nsInstance, thisSS).Inc()
-			P.insertBackoff(thisSS)
+		case P.stopped:
+			P.logger.Info("Skipping sybSystem stat collection, process is stopping", zap.String("subSystem", thisSS))
 		default:
-			req := newNitroRawReq(RawServiceStats(data))
-			P.submit(req)
-			s := <-req.ResultChan()
-			if success, ok := s.(bool); ok {
-				switch {
-				case success:
-					go TK.set(P.nsInstance, thisSS, float64(time.Now().UnixNano()))
-				default:
-					exporterProcessingFailures.WithLabelValues(P.nsInstance, thisSS).Inc()
+			P.logger.Debug("Processing subSystem Stats", zap.String("subSystem", thisSS))
+			data := submitAPITask(P, netscaler.StatsTypeService)
+			switch {
+			case len(data) < 1:
+				P.logger.Error("error retrieving data for subSystem stat collection", zap.String("subSystem", thisSS))
+				exporterAPICollectFailures.WithLabelValues(P.nsInstance, thisSS).Inc()
+				P.insertBackoff(thisSS)
+			default:
+				req := newNitroRawReq(RawServiceStats(data))
+				P.submit(req)
+				s := <-req.ResultChan()
+				if success, ok := s.(bool); ok {
+					switch {
+					case success:
+						go TK.set(P.nsInstance, thisSS, float64(time.Now().UnixNano()))
+					default:
+						exporterProcessingFailures.WithLabelValues(P.nsInstance, thisSS).Inc()
+					}
 				}
+				P.logger.Debug("subSystem stat collection Complete", zap.String("subSystem", thisSS))
 			}
-			P.logger.Debug("subSystem stat collection Complete", zap.String("subSystem", thisSS))
 		}
+	default:
+		P.logger.Debug("subSystem stat collection already in progress", zap.String("subSystem", thisSS))
 	}
 }

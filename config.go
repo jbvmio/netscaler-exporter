@@ -36,10 +36,10 @@ func GetConfig(filePath string) *Config {
 	viper.SetDefault(`loglevel`, `info`)
 	C.LogLevel = viper.GetString(`loglevel`)
 	for _, c := range C.LBServers {
-		if c.PoolWorkers < 1 {
-			c.PoolWorkers = 30
+		if c.PoolWorkers < len(c.Metrics)*10 {
+			c.PoolWorkers = len(c.Metrics) * 10
 		}
-		if c.PoolWorkerQueue < 100 {
+		if c.PoolWorkerQueue < 1000 {
 			c.PoolWorkerQueue = 1000
 		}
 	}
