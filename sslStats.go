@@ -36,6 +36,7 @@ func processSSLStats(P *Pool, wg *sync.WaitGroup) {
 	switch {
 	case P.metricFlipBit[thisSS].good():
 		defer P.metricFlipBit[thisSS].flip()
+		timeBegin := time.Now().Unix()
 		switch {
 		case P.stopped:
 			P.logger.Info("Skipping sybSystem stat collection, process is stopping", zap.String("subSystem", thisSS))
@@ -55,6 +56,8 @@ func processSSLStats(P *Pool, wg *sync.WaitGroup) {
 					switch {
 					case success:
 						go TK.set(P.nsInstance, thisSS, float64(time.Now().UnixNano()))
+						timeEnd := time.Now().Unix()
+						exporterPromProcessingTime.WithLabelValues(P.nsInstance, thisSS).Set(float64(timeEnd - timeBegin))
 					default:
 						exporterProcessingFailures.WithLabelValues(P.nsInstance, thisSS).Inc()
 					}

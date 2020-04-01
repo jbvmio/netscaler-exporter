@@ -102,6 +102,7 @@ var allPromCollectors = []prometheus.Collector{
 	exporterProcessingFailures,
 	exporterMissedMetrics,
 	exporterPromCollectFailures,
+	exporterPromProcessingTime,
 	gslbServicesEstablishedConns,
 	gslbServicesState,
 	gslbVServerActiveServices,

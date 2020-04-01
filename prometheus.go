@@ -59,6 +59,15 @@ var (
 		},
 		exporterLabels,
 	)
+	exporterPromProcessingTime = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: namespace,
+			Subsystem: exporterSubsystem,
+			Name:      `processing_time_seconds`,
+			Help:      `Duration in seconds gathering subsystem metrics from the last collection if successful`,
+		},
+		exporterLabels,
+	)
 	exporterScrapeLag = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
