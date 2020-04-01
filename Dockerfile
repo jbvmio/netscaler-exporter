@@ -5,7 +5,7 @@ RUN addgroup -S tools && \
     mkdir /app
 
 COPY ./bin/process.bin /app/process
-COPY ./config.yaml /app/config.yaml
+COPY ./example.yaml /app/config.yaml
 RUN chown -R tools:tools /app && chmod 755 /app/process
 WORKDIR /app
 USER tools

@@ -1,0 +1,13 @@
+loglevel: info
+lbservers:
+- url: https://localhost
+  user: myUsername
+  pass: myPassword
+  ignoreCert: true
+  poolWorkers: 50
+  poolWorkerQueue: 1000
+  metrics:
+  - ns
+  - ssl
+  - lbvserver
+  - gslb_vserver
