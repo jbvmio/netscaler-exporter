@@ -3,7 +3,6 @@ package main
 import (
 	"container/ring"
 	"encoding/json"
-	"fmt"
 	"sync"
 	"time"
 
@@ -28,7 +27,6 @@ type Pool struct {
 	lbserver       LBServer
 	nsInstance     string
 	mappingsLoaded bool
-	vipMap         VIPMap
 	stopped        bool
 	nsVersion      string
 	logger         *zap.Logger
@@ -61,10 +59,6 @@ func newPool(lbs LBServer, logger *zap.Logger, loglevel string) *Pool {
 	}
 	pool.logger.Info("registered netscaler instance")
 	pool.logger.Info("registered lbserverUrl", zap.String("lbserverUrl", lbs.URL))
-	pool.vipMap = VIPMap{
-		mappings: make(map[string]map[string]string),
-		lock:     sync.Mutex{},
-	}
 	pool.logger.Info("registering metrics")
 	metricHandlers := make(map[string]metricHandleFunc, len(lbs.Metrics))
 	for _, m := range lbs.Metrics {
@@ -197,7 +191,6 @@ func (p *Pool) nitroAPITask(req work.TaskRequest) {
 			if ok {
 				payloads[i] = RawData(b)
 			}
-			fmt.Println(">>", i)
 		}
 		R.ResultChan() <- payloads
 		close(R.ResultChan())
@@ -330,7 +323,7 @@ func (p *Pool) nitroPromTask(req work.TaskRequest) {
 	switch data := R.data.(type) {
 	case ServiceStats:
 		p.logger.Debug("Identified nitroProm Task Type as ServiceStats", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow))
-		p.promSvcStats(data)
+		p.promLBVServerStats(data)
 	case LBVServerStats:
 		p.logger.Debug("Identified nitroProm Task Type as LBVServerStats", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow))
 		p.promLBVServerStats(data)

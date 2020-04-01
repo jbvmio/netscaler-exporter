@@ -91,16 +91,6 @@ func processLBVServerStats(P *Pool, wg *sync.WaitGroup) {
 				P.logger.Error("error retrieving data for subSystem stat collection", zap.String("subSystem", thisSS))
 				P.insertBackoff(thisSS)
 			default:
-				/*
-					P.logger.Debug("processing lbservice stats", zap.String("subSystem", thisSS), zap.Int("number of lbvservers", len(lbvServers)))
-					for _, svr := range lbvServers {
-						req := newNitroDataReq(svr)
-						success := P.submit(req)
-						if !success {
-							exporterProcessingFailures.WithLabelValues(P.nsInstance, thisSS).Inc()
-						}
-					}
-				*/
 				if fails > 0 {
 					exporterProcessingFailures.WithLabelValues(P.nsInstance, thisSS).Add(fails)
 				}
@@ -115,19 +105,16 @@ func processLBVServerStats(P *Pool, wg *sync.WaitGroup) {
 
 // GetLBServerServiceStats retrieves stats for both LBServers and LBServices.
 func GetLBServerServiceStats(P *Pool) (failures float64, err error) {
-	//var lbVServers []LBVServerStats
 	servers, err := getLBVServerStats(P.client)
 	if err != nil {
 		exporterAPICollectFailures.WithLabelValues(P.nsInstance, lbvserverSubsystem).Inc()
+		P.logger.Error("error retrieving stats from nitro api", zap.String("subSystem", lbvserverSubsystem), zap.Error(err))
 		return 0, err
 	}
 	svcChan := make(chan []LBVServerStats, len(servers)+1)
 	errChan := make(chan bool, len(servers)+1)
-	var controlSize float64 = 40
+	var controlSize float64 = 100
 	control := int(math.Round((float64(len(servers)) / controlSize) + 0.6))
-	if control <= 1 {
-		control = len(servers)
-	}
 	var count int
 	for count < len(servers) {
 		begin := count
@@ -164,21 +151,20 @@ func GetLBServerServiceStats(P *Pool) (failures float64, err error) {
 	for i := 0; i < len(servers); i++ {
 		select {
 		case <-errChan:
-			// Instrument Missing Counter Here
-			//exporterProcessingFailures.WithLabelValues(P.nsInstance, lbvserverSvcSubsystem).Inc()
+			exporterMissedMetrics.WithLabelValues(P.nsInstance, lbvserverSvcSubsystem).Inc()
 		case s := <-svcChan:
-			//lbVServers = append(lbVServers, s...)
 			for _, svr := range s {
 				req := newNitroDataReq(svr)
 				success := P.submit(req)
 				if !success {
 					failures++
-					//exporterProcessingFailures.WithLabelValues(P.nsInstance, lbvserverSubsystem).Inc()
 				}
 			}
 
 		}
 	}
+	close(errChan)
+	close(svcChan)
 	return failures, nil
 }
 

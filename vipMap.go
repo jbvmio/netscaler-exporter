@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"sync"
-	"time"
 
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v2"
@@ -106,6 +105,7 @@ func (v *VIPMap) saveMappingYaml(path string) error {
 	return nil
 }
 
+/*
 func collectMappings(P *Pool, force bool, wg *sync.WaitGroup) {
 	if wg != nil {
 		defer wg.Done()
@@ -183,3 +183,4 @@ func collectMappings(P *Pool, force bool, wg *sync.WaitGroup) {
 	P.mappingsLoaded = true
 	P.vipMap.saveMappingYaml(mappingsDir + `/` + P.nsInstance + `.yaml`)
 }
+*/

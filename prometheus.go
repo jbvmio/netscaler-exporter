@@ -41,6 +41,15 @@ var (
 		},
 		exporterLabels,
 	)
+	exporterMissedMetrics = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Namespace: namespace,
+			Subsystem: exporterSubsystem,
+			Name:      `missed_metrics_total`,
+			Help:      `The total number of metrics that were missed and not able to get collected`,
+		},
+		exporterLabels,
+	)
 	exporterPromCollectFailures = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: namespace,

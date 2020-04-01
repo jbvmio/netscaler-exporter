@@ -17,7 +17,6 @@ type LBServer struct {
 	URL             string   `yaml:"url"`
 	User            string   `yaml:"user"`
 	Pass            string   `yaml:"pass"`
-	MappingsURL     string   `yaml:"mappingsUrl"`
 	IgnoreCert      bool     `yaml:"ignoreCert"`
 	PoolWorkers     int      `yaml:"poolWorkers"`
 	PoolWorkerQueue int      `yaml:"poolWorkerQueue"`

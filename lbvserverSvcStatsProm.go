@@ -4,191 +4,169 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-const lbvserverSvcSubsystem = `lbservice`
+//const lbvserverSvcSubsystem = servicesSubsystem
+
+var lbvserverSvcSubsystem = `service`
 
 var (
-	lbVSvrSvcLabels     = []string{netscalerInstance, `citrixadc_service_name`, `citrixadc_lb_name`}
-	lbVSvrSvcThroughput = prometheus.NewGaugeVec(
+	lbvsvrServiceLabels     = []string{netscalerInstance, `citrixadc_service_name`, `citrixadc_lb_name`}
+	lbvsvrServiceThroughput = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
 			Subsystem: lbvserverSvcSubsystem,
 			Name:      "throughput_bytes",
 			Help:      "Number of bytes received or sent by this service",
 		},
-		lbVSvrSvcLabels,
+		lbvsvrServiceLabels,
 	)
 
-	lbVSvrSvcAvgTTFB = prometheus.NewGaugeVec(
+	lbvsvrServiceAvgTTFB = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
 			Subsystem: lbvserverSvcSubsystem,
 			Name:      "average_time_to_first_byte_seconds",
 			Help:      "Average TTFB between the NetScaler appliance and the server. TTFB is the time interval between sending the request packet to a service and receiving the first response from the service",
 		},
-		lbVSvrSvcLabels,
+		lbvsvrServiceLabels,
 	)
 
-	lbVSvrSvcState = prometheus.NewGaugeVec(
+	lbvsvrServiceState = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
 			Subsystem: lbvserverSvcSubsystem,
 			Name:      "state",
 			Help:      "Current state of the service. 0 = DOWN, 1 = UP, 2 = OUT OF SERVICE, 3 = UNKNOWN",
 		},
-		lbVSvrSvcLabels,
+		lbvsvrServiceLabels,
 	)
 
-	lbVSvrSvcTotalRequests = prometheus.NewGaugeVec(
+	lbvsvrServiceTotalRequests = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
 			Subsystem: lbvserverSvcSubsystem,
 			Name:      "requests_total",
 			Help:      "Total number of requests received on this service",
 		},
-		lbVSvrSvcLabels,
+		lbvsvrServiceLabels,
 	)
 
-	lbVSvrSvcTotalResponses = prometheus.NewGaugeVec(
+	lbvsvrServiceTotalResponses = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
 			Subsystem: lbvserverSvcSubsystem,
 			Name:      "responses_total",
 			Help:      "Total number of responses received on this service",
 		},
-		lbVSvrSvcLabels,
+		lbvsvrServiceLabels,
 	)
 
-	lbVSvrSvcTotalRequestBytes = prometheus.NewGaugeVec(
+	lbvsvrServiceTotalRequestBytes = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
 			Subsystem: lbvserverSvcSubsystem,
 			Name:      "request_bytes_total",
 			Help:      "Total number of request bytes received on this service",
 		},
-		lbVSvrSvcLabels,
+		lbvsvrServiceLabels,
 	)
 
-	lbVSvrSvcTotalResponseBytes = prometheus.NewGaugeVec(
+	lbvsvrServiceTotalResponseBytes = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
 			Subsystem: lbvserverSvcSubsystem,
 			Name:      "response_bytes_total",
 			Help:      "Total number of response bytes received on this service",
 		},
-		lbVSvrSvcLabels,
+		lbvsvrServiceLabels,
 	)
 
-	lbVSvrSvcCurrentClientConns = prometheus.NewGaugeVec(
+	lbvsvrServiceCurrentClientConns = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
 			Subsystem: lbvserverSvcSubsystem,
 			Name:      "current_client_connections",
 			Help:      "Number of current client connections",
 		},
-		lbVSvrSvcLabels,
+		lbvsvrServiceLabels,
 	)
 
-	lbVSvrSvcSurgeCount = prometheus.NewGaugeVec(
+	lbvsvrServiceSurgeCount = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
 			Subsystem: lbvserverSvcSubsystem,
 			Name:      "surge_queue",
 			Help:      "Number of requests in the surge queue",
 		},
-		lbVSvrSvcLabels,
+		lbvsvrServiceLabels,
 	)
 
-	lbVSvrSvcCurrentServerConns = prometheus.NewGaugeVec(
+	lbvsvrServiceCurrentServerConns = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
 			Subsystem: lbvserverSvcSubsystem,
 			Name:      "current_server_connections",
 			Help:      "Number of current connections to the actual servers",
 		},
-		lbVSvrSvcLabels,
+		lbvsvrServiceLabels,
 	)
 
-	lbVSvrSvcServerEstablishedConnections = prometheus.NewGaugeVec(
+	lbvsvrServiceServerEstablishedConnections = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
 			Subsystem: lbvserverSvcSubsystem,
 			Name:      "server_established_connections",
 			Help:      "Number of server connections in ESTABLISHED state",
 		},
-		lbVSvrSvcLabels,
+		lbvsvrServiceLabels,
 	)
 
-	lbVSvrSvcCurrentReusePool = prometheus.NewGaugeVec(
+	lbvsvrServiceCurrentReusePool = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
 			Subsystem: lbvserverSvcSubsystem,
 			Name:      "current_reuse_pool",
 			Help:      "Number of requests in the idle queue/reuse pool.",
 		},
-		lbVSvrSvcLabels,
+		lbvsvrServiceLabels,
 	)
 
-	lbVSvrSvcMaxClients = prometheus.NewGaugeVec(
+	lbvsvrServiceMaxClients = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
 			Subsystem: lbvserverSvcSubsystem,
 			Name:      "max_clients",
 			Help:      "Maximum open connections allowed on this service",
 		},
-		lbVSvrSvcLabels,
+		lbvsvrServiceLabels,
 	)
 
-	lbVSvrSvcCurrentLoad = prometheus.NewGaugeVec(
+	lbvsvrServiceCurrentLoad = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
 			Subsystem: lbvserverSvcSubsystem,
 			Name:      "current_load",
 			Help:      "Load on the service that is calculated from the bound load based monitor",
 		},
-		lbVSvrSvcLabels,
+		lbvsvrServiceLabels,
 	)
 
-	lbVSvrSvcVirtualServerServiceHits = prometheus.NewGaugeVec(
+	lbvsvrServiceVirtualServerServiceHits = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
 			Subsystem: lbvserverSvcSubsystem,
 			Name:      "vserver_service_hits",
 			Help:      "Number of times that the service has been provided",
 		},
-		lbVSvrSvcLabels,
+		lbvsvrServiceLabels,
 	)
 
-	lbVSvrSvcActiveTransactions = prometheus.NewGaugeVec(
+	lbvsvrServiceActiveTransactions = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
 			Subsystem: lbvserverSvcSubsystem,
 			Name:      "active_transactions",
 			Help:      "Number of active transactions handled by this service. (Including those in the surge queue.) Active Transaction means number of transactions currently served by the server including those waiting in the SurgeQ",
 		},
-		lbVSvrSvcLabels,
+		lbvsvrServiceLabels,
 	)
 )
-
-/*
-func (P *Pool) promLBVSvrSvcStats(ss ServiceStats) {
-	P.logger.Debug("recieved ServiceStat", zap.String("Received", fmt.Sprintf("%+v", ss)))
-	// Value is in megabytes. Convert to base unit of bytes.
-	lbVSvrSvcThroughput.WithLabelValues(P.nsInstance, ss.Name, ss.ServiceName).Set(cast.ToFloat64(ss.Throughput) * 1024 * 1024)
-	// Value is in milliseconds. Convert to base unit of seconds.
-	lbVSvrSvcAvgTTFB.WithLabelValues(P.nsInstance, ss.Name, ss.ServiceName).Set(cast.ToFloat64(ss.AvgTimeToFirstByte) * 0.001)
-	lbVSvrSvcState.WithLabelValues(P.nsInstance, ss.Name, ss.ServiceName).Set(ss.State.Value())
-	lbVSvrSvcTotalRequests.WithLabelValues(P.nsInstance, ss.Name, ss.ServiceName).Set(cast.ToFloat64(ss.TotalRequests))
-	lbVSvrSvcTotalResponses.WithLabelValues(P.nsInstance, ss.Name, ss.ServiceName).Set(cast.ToFloat64(ss.TotalResponses))
-	lbVSvrSvcTotalRequestBytes.WithLabelValues(P.nsInstance, ss.Name, ss.ServiceName).Set(cast.ToFloat64(ss.TotalRequestBytes))
-	lbVSvrSvcTotalResponseBytes.WithLabelValues(P.nsInstance, ss.Name, ss.ServiceName).Set(cast.ToFloat64(ss.TotalResponseBytes))
-	lbVSvrSvcCurrentClientConns.WithLabelValues(P.nsInstance, ss.Name, ss.ServiceName).Set(cast.ToFloat64(ss.CurrentClientConnections))
-	lbVSvrSvcCurrentServerConns.WithLabelValues(P.nsInstance, ss.Name, ss.ServiceName).Set(cast.ToFloat64(ss.CurrentServerConnections))
-	lbVSvrSvcSurgeCount.WithLabelValues(P.nsInstance, ss.Name, ss.ServiceName).Set(cast.ToFloat64(ss.SurgeCount))
-	lbVSvrSvcServerEstablishedConnections.WithLabelValues(P.nsInstance, ss.Name, ss.ServiceName).Set(cast.ToFloat64(ss.ServerEstablishedConnections))
-	lbVSvrSvcCurrentReusePool.WithLabelValues(P.nsInstance, ss.Name, ss.ServiceName).Set(cast.ToFloat64(ss.CurrentReusePool))
-	lbVSvrSvcMaxClients.WithLabelValues(P.nsInstance, ss.Name, ss.ServiceName).Set(cast.ToFloat64(ss.MaxClients))
-	lbVSvrSvcCurrentLoad.WithLabelValues(P.nsInstance, ss.Name, ss.ServiceName).Set(cast.ToFloat64(ss.CurrentLoad))
-	lbVSvrSvcVirtualServerServiceHits.WithLabelValues(P.nsInstance, ss.Name, ss.ServiceName).Set(cast.ToFloat64(ss.ServiceHits))
-	lbVSvrSvcActiveTransactions.WithLabelValues(P.nsInstance, ss.Name, ss.ServiceName).Set(cast.ToFloat64(ss.ActiveTransactions))
-}
-*/

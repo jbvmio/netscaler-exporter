@@ -1,17 +1,10 @@
 package main
 
-import (
-	"fmt"
-
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/spf13/cast"
-	"go.uber.org/zap"
-)
-
 // https://developer-docs.citrix.com/projects/netscaler-nitro-api/en/12.0/statistics/basic/service/service/
 
 const servicesSubsystem = "service"
 
+/*
 var (
 	servicesLabels     = []string{netscalerInstance, `citrixadc_service_name`}
 	servicesThroughput = prometheus.NewGaugeVec(
@@ -199,3 +192,4 @@ func (P *Pool) promSvcStats(ss ServiceStats) {
 
 // External Counters:
 // https://github.com/prometheus-net/prometheus-net/issues/63
+*/
