@@ -17,23 +17,23 @@ const (
 
 // VIPMap contains mappings.
 type VIPMap struct {
-	mappings map[string]map[string]string
+	mappings map[string]map[string][]string
 	lock     sync.Mutex
 }
 
-func (v *VIPMap) updateMappings(key string, maps map[string]string, l *zap.Logger) {
+func (v *VIPMap) updateMappings(key string, maps map[string][]string, l *zap.Logger) {
 	l.Debug("Recieved Update Mapping Request", zap.Int("Mappings Recieved", len(maps)))
 	v.lock.Lock()
 	_, there := v.mappings[key]
 	if !there {
-		v.mappings[key] = make(map[string]string)
+		v.mappings[key] = make(map[string][]string)
 	}
 	v.mappings[key] = maps
 	l.Debug("Updated Mappings", zap.Int("Total Mappings", len(maps)))
 	v.lock.Unlock()
 }
 
-func (v *VIPMap) exists(key string) bool {
+func (v *VIPMap) exists(nsInstance, key string) bool {
 	var there bool
 	v.lock.Lock()
 	_, there = v.mappings[key]
@@ -41,12 +41,12 @@ func (v *VIPMap) exists(key string) bool {
 	return there
 }
 
-func (v *VIPMap) getMapping(nsInstance, key string, l *zap.Logger) string {
-	var val string
+func (v *VIPMap) getMappings(nsInstance, key string, l *zap.Logger) []string {
+	var val []string
 	v.lock.Lock()
 	val = v.mappings[nsInstance][key]
 	v.lock.Unlock()
-	l.Debug("Recieved Mapping Request", zap.String("key", key), zap.String("found value", val))
+	l.Debug("Recieved Mapping Request", zap.String("key", key), zap.Strings("found values", val))
 	return val
 }
 
@@ -174,9 +174,9 @@ func collectMappings(P *Pool, force bool, wg *sync.WaitGroup) {
 			P.client.WithHTTPTimeout(time.Second * 60)
 		}
 	}
-	tmpMap := make(map[string]string)
+	tmpMap := make(map[string][]string)
 	for _, svc := range svcB {
-		tmpMap[svc.ServiceName] = svc.Name
+		tmpMap[svc.ServiceName] = append(tmpMap[svc.ServiceName], svc.Name)
 	}
 	P.vipMap.updateMappings(P.nsInstance, tmpMap, P.logger)
 	P.logger.Info("Mappings Collection Complete", zap.Int("Total Mappings", len(tmpMap)))

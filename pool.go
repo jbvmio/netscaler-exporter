@@ -63,7 +63,7 @@ func newPool(lbs LBServer, logger *zap.Logger, loglevel string) *Pool {
 	pool.logger.Info("registered netscaler instance")
 	pool.logger.Info("registered lbserverUrl", zap.String("lbserverUrl", lbs.URL))
 	pool.vipMap = VIPMap{
-		mappings: make(map[string]map[string]string),
+		mappings: make(map[string]map[string][]string),
 		lock:     sync.Mutex{},
 	}
 	pool.logger.Info("registering metrics")
