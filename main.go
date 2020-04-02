@@ -42,6 +42,8 @@ func main() {
 		L = ConfigureLogger(config.LogLevel, os.Stdout)
 	}
 	L.Info("Starting ...", zap.String(`Version`, buildTime), zap.String(`Commit`, commitHash))
+	L.Info("Setting Collect Interval ...", zap.Duration("interval", config.Interval))
+	collectInterval = config.Interval
 	err := createDir(mappingsDir)
 	if err != nil {
 		L.Error("unable to create mappings directory", zap.Error(err))

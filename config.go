@@ -2,14 +2,16 @@ package main
 
 import (
 	"log"
+	"time"
 
 	"github.com/spf13/viper"
 )
 
 // Config parameters for the exporter:
 type Config struct {
-	LogLevel  string     `yaml:"loglevel"`
-	LBServers []LBServer `yaml:"lbservers"`
+	LogLevel  string        `yaml:"loglevel"`
+	Interval  time.Duration `yaml:"interval"`
+	LBServers []LBServer    `yaml:"lbservers"`
 }
 
 // LBServer details for a Netscaler LB:
@@ -35,7 +37,9 @@ func GetConfig(filePath string) *Config {
 	var C Config
 	viper.Unmarshal(&C)
 	viper.SetDefault(`loglevel`, `info`)
+	viper.SetDefault(`interval`, `5s`)
 	C.LogLevel = viper.GetString(`loglevel`)
+	C.Interval = viper.GetDuration(`interval`)
 	for _, c := range C.LBServers {
 		if c.PoolWorkers < len(c.Metrics)*10 {
 			c.PoolWorkers = len(c.Metrics) * 10

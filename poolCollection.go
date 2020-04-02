@@ -8,10 +8,10 @@ import (
 )
 
 var (
-	collectionWG        sync.WaitGroup
-	collectionStop      chan struct{}
-	collectionLock      *sync.Mutex
-	collectIntervalSecs = 1
+	collectionWG    sync.WaitGroup
+	collectionStop  chan struct{}
+	collectionLock  *sync.Mutex
+	collectInterval time.Duration
 )
 
 // PoolCollection is collection of Pool.
@@ -26,7 +26,7 @@ func (p PoolCollection) startCollecting(l *zap.Logger) {
 	go func(wg *sync.WaitGroup, logger *zap.Logger) {
 		defer wg.Done()
 		logger.Info("Starting Metric Collection")
-		ticker := time.NewTicker(time.Duration(collectIntervalSecs) * time.Second)
+		ticker := time.NewTicker(collectInterval)
 	collectLoop:
 		for {
 			select {
