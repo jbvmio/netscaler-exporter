@@ -20,6 +20,8 @@ type LBServer struct {
 	IgnoreCert      bool     `yaml:"ignoreCert"`
 	PoolWorkers     int      `yaml:"poolWorkers"`
 	PoolWorkerQueue int      `yaml:"poolWorkerQueue"`
+	CollectMappings bool     `yaml:"collectMappings"`
+	MappingsURL     string   `yaml:"mappingsUrl"`
 	Metrics         []string `yaml:"metrics"`
 }
 

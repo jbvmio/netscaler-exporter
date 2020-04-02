@@ -13,23 +13,25 @@ import (
 
 // Pool for exporting metrics for a lbserver.
 type Pool struct {
-	team           *work.Team
-	client         *netscaler.NitroClient
-	clientPool     []*netscaler.NitroClient
-	poolIdx        *ring.Ring
-	poolLock       *sync.Mutex
-	poolWG         sync.WaitGroup
-	backoff        *MiscMap
-	poolFlipBit    *FlipBit
-	metricClients  map[string]*netscaler.NitroClient
-	metricHandlers map[string]metricHandleFunc
-	metricFlipBit  map[string]*FlipBit
-	lbserver       LBServer
-	nsInstance     string
-	mappingsLoaded bool
-	stopped        bool
-	nsVersion      string
-	logger         *zap.Logger
+	team            *work.Team
+	client          *netscaler.NitroClient
+	clientPool      []*netscaler.NitroClient
+	poolIdx         *ring.Ring
+	poolLock        *sync.Mutex
+	poolWG          sync.WaitGroup
+	backoff         *MiscMap
+	poolFlipBit     *FlipBit
+	metricClients   map[string]*netscaler.NitroClient
+	metricHandlers  map[string]metricHandleFunc
+	metricFlipBit   map[string]*FlipBit
+	vipMap          VIPMap
+	lbserver        LBServer
+	nsInstance      string
+	collectMappings bool
+	mappingsLoaded  bool
+	stopped         bool
+	nsVersion       string
+	logger          *zap.Logger
 }
 
 func newPool(lbs LBServer, logger *zap.Logger, loglevel string) *Pool {
@@ -40,13 +42,14 @@ func newPool(lbs LBServer, logger *zap.Logger, loglevel string) *Pool {
 	conf.WorkerQueueSize = lbs.PoolWorkerQueue
 	team := work.NewTeam(conf)
 	pool := Pool{
-		team:          team,
-		poolIdx:       ring.New(noClients),
-		poolLock:      &sync.Mutex{},
-		poolWG:        sync.WaitGroup{},
-		lbserver:      lbs,
-		poolFlipBit:   &FlipBit{lock: sync.Mutex{}},
-		metricFlipBit: make(map[string]*FlipBit, len(lbs.Metrics)),
+		team:            team,
+		poolIdx:         ring.New(noClients),
+		poolLock:        &sync.Mutex{},
+		poolWG:          sync.WaitGroup{},
+		lbserver:        lbs,
+		collectMappings: lbs.CollectMappings,
+		poolFlipBit:     &FlipBit{lock: sync.Mutex{}},
+		metricFlipBit:   make(map[string]*FlipBit, len(lbs.Metrics)),
 		backoff: &MiscMap{
 			data: make(map[string]interface{}, len(lbs.Metrics)),
 			lock: sync.Mutex{},
@@ -59,6 +62,10 @@ func newPool(lbs LBServer, logger *zap.Logger, loglevel string) *Pool {
 	}
 	pool.logger.Info("registered netscaler instance")
 	pool.logger.Info("registered lbserverUrl", zap.String("lbserverUrl", lbs.URL))
+	pool.vipMap = VIPMap{
+		mappings: make(map[string]map[string]string),
+		lock:     sync.Mutex{},
+	}
 	pool.logger.Info("registering metrics")
 	metricHandlers := make(map[string]metricHandleFunc, len(lbs.Metrics))
 	for _, m := range lbs.Metrics {
@@ -72,12 +79,17 @@ func newPool(lbs LBServer, logger *zap.Logger, loglevel string) *Pool {
 			pool.logger.Warn("invalid metric", zap.String("metric", m))
 		}
 	}
-	if _, there := metricHandlers[lbvserverSubsystem]; there {
+	if _, there := metricHandlers[lbvserviceSubsystem]; there {
 		if _, hasIt := metricHandlers[servicesSubsystem]; hasIt {
 			pool.logger.Info("unregistering metric", zap.String("metric", servicesSubsystem))
 			delete(metricHandlers, servicesSubsystem)
 			delete(pool.metricFlipBit, servicesSubsystem)
 		}
+		if _, hasIt := metricHandlers[lbvserverSubsystem]; hasIt {
+			pool.logger.Info("unregistering metric", zap.String("metric", lbvserverSubsystem))
+			delete(metricHandlers, lbvserverSubsystem)
+		}
+		pool.collectMappings = false
 	}
 	pool.metricHandlers = metricHandlers
 	clientPool := make([]*netscaler.NitroClient, noClients)
@@ -229,6 +241,28 @@ func (p *Pool) nitroRawTask(req work.TaskRequest) {
 				noErr = false
 			}
 		}
+	case RawLBVServerStats:
+		p.logger.Debug("Identified nitroRaw Task Type as RawLBVServerStats", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow))
+		var stats []LBVServerStats
+		tmp := struct {
+			Target *[]LBVServerStats `json:"lbvserver"`
+		}{Target: &stats}
+		err := json.Unmarshal(data, &tmp)
+		if err != nil {
+			p.logger.Error("Recieved nitroRaw Task Error", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow), zap.Error(err))
+			R.ResultChan() <- false
+			close(R.ResultChan())
+			return
+		}
+		for _, s := range stats {
+			datReq := newNitroDataReq(s)
+			success := p.submit(datReq)
+			p.logger.Debug("Sending nitroData Task", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow), zap.Bool("successful", success))
+			if !success {
+				noErr = false
+			}
+		}
+		p.logger.Debug("Processed RawLBVServerStats", zap.String("TaskType", req.ReqType().String()), zap.Int("Number of Stats", len(stats)), zap.Int64("TaskTS", timeNow))
 	case RawNSStats:
 		p.logger.Debug("Identified nitroRaw Task Type as RawNSStats", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow))
 		var stats NSStats

@@ -42,8 +42,7 @@ type LBVServerStats struct {
 
 // LBServiceStats represents the data returned from the /stat/service Nitro API endpoint
 type LBServiceStats struct {
-	Name string `json:"name"`
-	//ServiceName                  string   `json:"servicename"`
+	Name                         string   `json:"name"`
 	Throughput                   string   `json:"throughput"`
 	AvgTimeToFirstByte           string   `json:"avgsvrttfb"`
 	State                        CurState `json:"state"`
@@ -73,6 +72,49 @@ func (s LBServiceStats) NitroType() string {
 }
 
 func processLBVServerStats(P *Pool, wg *sync.WaitGroup) {
+	if wg != nil {
+		defer wg.Done()
+	}
+	thisSS := lbvserverSubsystem
+	switch {
+	case P.metricFlipBit[thisSS].good():
+		defer P.metricFlipBit[thisSS].flip()
+		timeBegin := time.Now().Unix()
+		switch {
+		case P.stopped:
+			P.logger.Info("Skipping sybSystem stat collection, process is stopping", zap.String("subSystem", thisSS))
+		default:
+			P.logger.Debug("Processing subSystem Stats", zap.String("subSystem", thisSS))
+			data := submitAPITask(P, netscaler.StatsTypeLBVServer)
+
+			switch {
+			case len(data) < 1:
+				P.logger.Error("error retrieving data for subSystem stat collection", zap.String("subSystem", thisSS))
+				exporterAPICollectFailures.WithLabelValues(P.nsInstance, thisSS).Inc()
+				P.insertBackoff(thisSS)
+			default:
+				req := newNitroRawReq(RawLBVServerStats(data))
+				P.submit(req)
+				s := <-req.ResultChan()
+				if success, ok := s.(bool); ok {
+					switch {
+					case success:
+						go TK.set(P.nsInstance, thisSS, float64(time.Now().UnixNano()))
+						timeEnd := time.Now().Unix()
+						exporterPromProcessingTime.WithLabelValues(P.nsInstance, thisSS).Set(float64(timeEnd - timeBegin))
+					default:
+						exporterProcessingFailures.WithLabelValues(P.nsInstance, thisSS).Inc()
+					}
+				}
+				P.logger.Debug("subSystem stat collection Complete", zap.String("subSystem", thisSS))
+			}
+		}
+	default:
+		P.logger.Debug("subSystem stat collection already in progress", zap.String("subSystem", thisSS))
+	}
+}
+
+func processLBVServiceStats(P *Pool, wg *sync.WaitGroup) {
 	if wg != nil {
 		defer wg.Done()
 	}

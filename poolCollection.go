@@ -82,7 +82,6 @@ func (p PoolCollection) processAll(wg *sync.WaitGroup, l *zap.Logger) {
 	w.Wait()
 }
 
-/*
 func (p PoolCollection) collectMappings(wg *sync.WaitGroup) {
 	switch {
 	case wg != nil:
@@ -103,4 +102,3 @@ func (p PoolCollection) collectMappings(wg *sync.WaitGroup) {
 		}
 	}
 }
-*/

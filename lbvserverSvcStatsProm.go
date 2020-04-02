@@ -4,7 +4,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
-//const lbvserverSvcSubsystem = servicesSubsystem
+const lbvserviceSubsystem = `lbservice`
 
 var lbvserverSvcSubsystem = `service`
 

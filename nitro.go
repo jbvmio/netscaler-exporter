@@ -68,6 +68,7 @@ var metricsMap = map[string]metricHandleFunc{
 	nsSubsystem:          processNSStats,
 	sslSubsystem:         processSSLStats,
 	lbvserverSubsystem:   processLBVServerStats,
+	lbvserviceSubsystem:  processLBVServiceStats,
 	gslbVServerSubsystem: processGSLBVServerStats,
 }
 
