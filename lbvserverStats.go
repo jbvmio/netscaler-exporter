@@ -122,7 +122,7 @@ func processLBVServiceStats(P *Pool, wg *sync.WaitGroup) {
 	switch {
 	case P.metricFlipBit[thisSS].good():
 		defer P.metricFlipBit[thisSS].flip()
-		timeBegin := time.Now().Unix()
+		timeBegin := time.Now().UnixNano()
 		switch {
 		case P.stopped:
 			P.logger.Info("Skipping sybSystem stat collection, process is stopping", zap.String("subSystem", thisSS))
@@ -138,8 +138,8 @@ func processLBVServiceStats(P *Pool, wg *sync.WaitGroup) {
 					exporterProcessingFailures.WithLabelValues(P.nsInstance, thisSS).Add(fails)
 				}
 				go TK.set(P.nsInstance, thisSS, float64(time.Now().UnixNano()))
-				timeEnd := time.Now().Unix()
-				exporterPromProcessingTime.WithLabelValues(P.nsInstance, thisSS).Set(float64(timeEnd - timeBegin))
+				timeEnd := time.Now().UnixNano()
+				exporterPromProcessingTime.WithLabelValues(P.nsInstance, thisSS).Set(float64((timeEnd - timeBegin) / nanoSecond))
 				P.logger.Debug("subSystem stat collection Complete", zap.String("subSystem", thisSS))
 			}
 		}

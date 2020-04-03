@@ -42,11 +42,11 @@ func GetSvcBindings(client *netscaler.NitroClient) ([]SvcBind, error) {
 	return target, nil
 }
 
-// GetNSVersion take a NitroClient and returns the Netscaler Version or an empty string if an error is encountered.
-func GetNSVersion(client *netscaler.NitroClient) string {
+// GetNSVersion take a NitroClient and returns the Netscaler Version.
+func GetNSVersion(client *netscaler.NitroClient) (string, error) {
 	b, err := client.GetAll(netscaler.ConfigTypeNSVersion)
 	if err != nil {
-		return ""
+		return "", err
 	}
 	tmp := struct {
 		Target struct {
@@ -55,7 +55,7 @@ func GetNSVersion(client *netscaler.NitroClient) string {
 	}{}
 	err = json.Unmarshal(b, &tmp)
 	if err != nil {
-		return ""
+		return "", err
 	}
-	return tmp.Target.Version
+	return tmp.Target.Version, nil
 }
