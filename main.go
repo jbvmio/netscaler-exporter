@@ -56,7 +56,7 @@ func main() {
 			L.Error("error validating client, skipping ...", zap.String(`nsInstance`, nsInstance(lbs.URL)), zap.Error(err))
 		default:
 			P := newPool(lbs, L, config.LogLevel)
-			P.nsVersion = nv
+			P.nsVersion = nsVersion(nv)
 			P.client = client
 			pools = append(pools, P)
 		}

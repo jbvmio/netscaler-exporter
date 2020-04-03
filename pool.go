@@ -35,7 +35,7 @@ type Pool struct {
 }
 
 func newPool(lbs LBServer, logger *zap.Logger, loglevel string) *Pool {
-	noClients := lbs.PoolWorkers
+	noClients := len(lbs.Metrics) * 2
 	conf := work.NewTeamConfig()
 	conf.Name = lbs.URL
 	conf.Workers = lbs.PoolWorkers
