@@ -50,10 +50,16 @@ func main() {
 	}
 	for _, lbs := range config.LBServers {
 		client := netscaler.NewClient(lbs.URL, lbs.User, lbs.Pass, lbs.IgnoreCert)
-		P := newPool(lbs, L, config.LogLevel)
-		P.nsVersion = nsVersion(GetNSVersion(client))
-		P.client = client
-		pools = append(pools, P)
+		nv, err := GetNSVersion(client)
+		switch {
+		case err != nil:
+			L.Error("error validating client, skipping ...", zap.String(`nsInstance`, nsInstance(lbs.URL)), zap.Error(err))
+		default:
+			P := newPool(lbs, L, config.LogLevel)
+			P.nsVersion = nv
+			P.client = client
+			pools = append(pools, P)
+		}
 	}
 	if len(pools) < 1 {
 		L.Fatal("no valid nsInstances available, exiting")
