@@ -67,6 +67,10 @@ github.com/jbvmio/netscaler v0.0.0-20200327160959-923a59e37a38 h1:q/Ym58pY9enN1L
 github.com/jbvmio/netscaler v0.0.0-20200327160959-923a59e37a38/go.mod h1:m/qqhgvMEBxIc+wY3jZObxTVmAXc5msQ0Slv3CzG97Y=
 github.com/jbvmio/netscaler v0.0.0-20200409031357-f90965cee21b h1:2FFAsmn8LRALU5qaNy0LgVZdHj0CjzhxsfyL3SjDszE=
 github.com/jbvmio/netscaler v0.0.0-20200409031357-f90965cee21b/go.mod h1:xGeao6OsKhePSxlK6ZMgM0y80vMliMCd/TqZlKbEOhY=
+github.com/jbvmio/netscaler v0.0.0-20200409170641-249894a27e72 h1:qZ3ppcUBB4DjWQyxm8FxVeWFPebgxNKqFnFDpSlwdJ4=
+github.com/jbvmio/netscaler v0.0.0-20200409170641-249894a27e72/go.mod h1:xGeao6OsKhePSxlK6ZMgM0y80vMliMCd/TqZlKbEOhY=
+github.com/jbvmio/netscaler v0.0.0-20200409175622-4814a6e76b93 h1:/lVbnLWDrLRr/wmdBbJHdd7VZEuUL8omNjfUrdA0D4U=
+github.com/jbvmio/netscaler v0.0.0-20200409175622-4814a6e76b93/go.mod h1:xGeao6OsKhePSxlK6ZMgM0y80vMliMCd/TqZlKbEOhY=
 github.com/jbvmio/work v0.0.0-20190326173353-ae5c35a42075 h1:sIE5K4yPF+ohYSQy9YHDW9BANufCh3T3zs/ctteJUD4=
 github.com/jbvmio/work v0.0.0-20190326173353-ae5c35a42075/go.mod h1:TALa+ALjImlS3/MWmliPBIrMeNNtcY3iwez4BgMa0qI=
 github.com/jonboulle/clockwork v0.1.0/go.mod h1:Ii8DK3G1RaLaWxj9trq07+26W01tbo22gdxWY5EU2bo=
@@ -151,6 +155,7 @@ github.com/stretchr/testify v1.2.2/go.mod h1:a8OnRcib4nhh0OaRAV+Yts87kKdq0PP7pXf
 github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UVUgZn+9EI=
 github.com/stretchr/testify v1.4.0 h1:2E4SXV/wtOkTonXsotYi4li6zVWxYlZuYNCXe9XRJyk=
 github.com/stretchr/testify v1.4.0/go.mod h1:j7eGeouHqKxXV5pUuKE4zz7dFj8WfuZ+81PSLYec5m4=
+github.com/stretchr/testify v1.5.1 h1:nOGnQDM7FYENwehXlg/kFVnos3rEvtKTjRvOWSzb6H4=
 github.com/stretchr/testify v1.5.1/go.mod h1:5W2xD1RspED5o8YsWQXVCued0rvSQ+mT+I5cxcmMvtA=
 github.com/subosito/gotenv v1.2.0 h1:Slr1R9HxAlEKefgq5jn9U+DnETlIUa6HfgEzj0g5d7s=
 github.com/subosito/gotenv v1.2.0/go.mod h1:N0PQaV/YGNqwC0u51sEeR/aUtSLEXKX9iv69rRypqCw=

@@ -198,7 +198,7 @@ func (p *Pool) nitroAPITask(req work.TaskRequest) {
 	default:
 		payloads := make([]RawData, len(R.targets))
 		for i := 0; i < len(R.targets); i++ {
-			apiReq := newNitroAPIReq(netscaler.StatsType(R.nitroID), R.targets[i])
+			apiReq := newNitroAPIReq(R.nitroID, R.targets[i])
 			p.submit(apiReq)
 			data := <-apiReq.ResultChan()
 			b, ok := data.([]byte)
@@ -265,6 +265,28 @@ func (p *Pool) nitroRawTask(req work.TaskRequest) {
 			}
 		}
 		p.logger.Debug("Processed RawLBVServerStats", zap.String("TaskType", req.ReqType().String()), zap.Int("Number of Stats", len(stats)), zap.Int64("TaskTS", timeNow))
+	case RawLBVServerConfigs:
+		p.logger.Debug("Identified nitroRaw Task Type as RawLBVServerConfigs", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow))
+		var stats []LBVServerConfigs
+		tmp := struct {
+			Target *[]LBVServerConfigs `json:"lbvserver"`
+		}{Target: &stats}
+		err := json.Unmarshal(data, &tmp)
+		if err != nil {
+			p.logger.Error("Recieved nitroRaw Task Error", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow), zap.Error(err))
+			R.ResultChan() <- false
+			close(R.ResultChan())
+			return
+		}
+		for _, s := range stats {
+			datReq := newNitroDataReq(s)
+			success := p.submit(datReq)
+			p.logger.Debug("Sending nitroData Task", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow), zap.Bool("successful", success))
+			if !success {
+				noErr = false
+			}
+		}
+		p.logger.Debug("Processed RawLBVServerConfigs", zap.String("TaskType", req.ReqType().String()), zap.Int("Number of Stats", 1), zap.Int64("TaskTS", timeNow))
 	case RawNSStats:
 		p.logger.Debug("Identified nitroRaw Task Type as RawNSStats", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow))
 		var stats NSStats
@@ -324,6 +346,12 @@ func (p *Pool) nitroDataTask(req work.TaskRequest) {
 		promReq := newPromTask(data)
 		success = p.submit(promReq)
 		p.logger.Debug("Sending nitroProm Task", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow), zap.Bool("successful", success))
+	case LBVServerConfigs:
+		sub = lbvserverConfigSubsystem
+		p.logger.Debug("Identified nitroData Task Type as LBVServerConfigs", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow))
+		promReq := newPromTask(data)
+		success = p.submit(promReq)
+		p.logger.Debug("Sending nitroProm Task", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow), zap.Bool("successful", success))
 	case GSLBVServerStats:
 		sub = gslbVServerSubsystem
 		p.logger.Debug("Identified nitroData Task Type as GSLBVServerStats", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow))
@@ -363,6 +391,9 @@ func (p *Pool) nitroPromTask(req work.TaskRequest) {
 	case LBVServerStats:
 		p.logger.Debug("Identified nitroProm Task Type as LBVServerStats", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow))
 		p.promLBVServerStats(data)
+	case LBVServerConfigs:
+		p.logger.Debug("Identified nitroProm Task Type as LBVServerConfigs", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow))
+		p.promLBVServerConfigs(data)
 	case GSLBVServerStats:
 		p.logger.Debug("Identified nitroProm Task Type as GSLBVServerStats", zap.String("TaskType", req.ReqType().String()), zap.Int64("TaskTS", timeNow))
 		p.promGSLBVServerStats(data)
@@ -381,13 +412,13 @@ func (p *Pool) nitroPromTask(req work.TaskRequest) {
 
 type nitroTaskReq struct {
 	taskID  TaskID
-	nitroID netscaler.StatsType
+	nitroID netscaler.NitroType
 	targets []string
 	data    interface{}
 	result  chan interface{}
 }
 
-func newNitroAPIReq(id netscaler.StatsType, targets ...string) *nitroTaskReq {
+func newNitroAPIReq(id netscaler.NitroType, targets ...string) *nitroTaskReq {
 	return &nitroTaskReq{
 		taskID:  nitroTaskAPI,
 		nitroID: id,
@@ -420,7 +451,7 @@ func newPromTask(n NitroData) *nitroTaskReq {
 	}
 }
 
-func submitAPITask(P *Pool, stat netscaler.StatsType, targets ...string) []byte {
+func submitAPITask(P *Pool, stat netscaler.NitroType, targets ...string) []byte {
 	var data []byte
 	var valid bool
 	apiReq := newNitroAPIReq(stat, targets...)

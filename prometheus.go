@@ -183,7 +183,7 @@ func (p PoolCollection) collectNSYear(desc *prometheus.Desc, ch chan<- prometheu
 	defer wg.Done()
 	for _, P := range p {
 		if P.nsVersion != "" {
-			ch <- prometheus.MustNewConstMetric(desc, prometheus.GaugeValue, float64(1), P.nsInstance, P.nsModel, P.nsVersion, cast.ToString(P.nsYear))
+			ch <- prometheus.MustNewConstMetric(desc, prometheus.GaugeValue, 1, P.nsInstance, P.nsModel, P.nsVersion, cast.ToString(P.nsYear))
 		}
 	}
 }

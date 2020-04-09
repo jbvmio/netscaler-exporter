@@ -109,6 +109,7 @@ var allPromCollectors = []prometheus.Collector{
 	gslbVServerEstablishedConns,
 	gslbVServerHealth,
 	gslbVServerState,
+	lbvserverLastStateChangeSecs,
 	lbvserverAveCLTTLB,
 	lbvserverState,
 	lbvserverTotalClientTTLBTrans,
