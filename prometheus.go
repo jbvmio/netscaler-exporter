@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/spf13/cast"
 	"go.uber.org/zap"
 )
 
@@ -22,7 +23,7 @@ var TK = &timekeeper{
 
 var (
 	exporterLabels             = []string{netscalerInstance, `citrixadc_subsystem`}
-	nsInfoLabels               = []string{netscalerInstance, `citrixadc_nsmodel`, `citrixadc_nsversion`}
+	nsInfoLabels               = []string{netscalerInstance, `citrixadc_ns_model`, `citrixadc_ns_version`, `citrixadc_ns_year`}
 	exporterAPICollectFailures = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: namespace,
@@ -106,14 +107,14 @@ var (
 		prometheus.GaugeOpts{
 			Namespace: namespace,
 			Subsystem: `ns`,
-			Name:      `year`,
-			Help:      `manufacture year of a citrix adc instance`,
+			Name:      `info`,
+			Help:      `A metric with a constant '1' value labeled with model, manufactured year, and version of the Netscaler.`,
 		},
 		nsInfoLabels,
 	)
 	exporterNSYearDesc = prometheus.NewDesc(
-		namespace+`_ns_year`,
-		`manufacture year of a citrix adc instance`,
+		namespace+`_ns_info`,
+		`A metric with a constant '1' value labeled with model, manufactured year, and version of the Netscaler.`,
 		nsInfoLabels,
 		nil,
 	)
@@ -182,7 +183,7 @@ func (p PoolCollection) collectNSYear(desc *prometheus.Desc, ch chan<- prometheu
 	defer wg.Done()
 	for _, P := range p {
 		if P.nsVersion != "" {
-			ch <- prometheus.MustNewConstMetric(desc, prometheus.GaugeValue, float64(P.nsYear), P.nsInstance, P.nsModel, P.nsVersion)
+			ch <- prometheus.MustNewConstMetric(desc, prometheus.GaugeValue, float64(1), P.nsInstance, P.nsModel, P.nsVersion, cast.ToString(P.nsYear))
 		}
 	}
 }
