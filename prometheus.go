@@ -118,6 +118,21 @@ var (
 		nsInfoLabels,
 		nil,
 	)
+	exporterKVPairs = prometheus.NewGaugeVec(
+		prometheus.GaugeOpts{
+			Namespace: namespace,
+			Subsystem: exporterSubsystem,
+			Name:      `kv_pairs`,
+			Help:      `A metric with a constant '1' value exporting key value pairs.`,
+		},
+		exporterKeys,
+	)
+	exporterKVPairsDesc = prometheus.NewDesc(
+		namespace+`_`+exporterSubsystem+`_kv_pairs`,
+		`A metric with a constant '1' value exporting key value pairs.`,
+		exporterKeys,
+		nil,
+	)
 )
 
 type exporter struct {
@@ -140,6 +155,8 @@ func (e *exporter) Collect(ch chan<- prometheus.Metric) {
 	go pools.collectNSYear(e.nsYearDesc, ch, &wg)
 	wg.Add(1)
 	go e.collectCounters(ch, &wg)
+	wg.Add(1)
+	go collectKVPairs(ch, &wg)
 	timeNow := float64(time.Now().UnixNano())
 	times := TK.retrieve()
 	for ins, sub := range times {
@@ -186,6 +203,11 @@ func (p PoolCollection) collectNSYear(desc *prometheus.Desc, ch chan<- prometheu
 			ch <- prometheus.MustNewConstMetric(desc, prometheus.GaugeValue, 1, P.nsInstance, P.nsModel, P.nsVersion, cast.ToString(P.nsYear))
 		}
 	}
+}
+
+func collectKVPairs(ch chan<- prometheus.Metric, wg *sync.WaitGroup) {
+	defer wg.Done()
+	ch <- prometheus.MustNewConstMetric(exporterKVPairsDesc, prometheus.UntypedValue, 1, exporterValues...)
 }
 
 func newExporter(cr *prometheus.Registry, l *zap.Logger) *exporter {
@@ -238,4 +260,18 @@ func (t *timekeeper) retrieve() map[string]map[string]float64 {
 	}
 	t.lock.Unlock()
 	return tmp
+}
+
+var exporterKeys = []string{
+	`DOWN`,
+	`UP`,
+	`OOS`,
+	`UNKNOWN`,
+}
+
+var exporterValues = []string{
+	`0`,
+	`1`,
+	`2`,
+	`3`,
 }
