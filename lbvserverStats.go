@@ -37,6 +37,7 @@ type LBVServerStats struct {
 	SurgeCount                  string           `json:"surgecount"`
 	SvcSurgeCount               string           `json:"svcsurgecount"`
 	VSvrSurgeCount              string           `json:"vsvrsurgecount"`
+	Type                        string           `json:"type"`
 	LBService                   []LBServiceStats `json:"service"`
 }
 
@@ -58,6 +59,7 @@ type LBServiceStats struct {
 	MaxClients                   string   `json:"maxclients"`
 	CurrentLoad                  string   `json:"curload"`
 	ServiceHits                  string   `json:"vsvrservicehits"`
+	ServiceType                  string   `json:"servicetype"`
 	ActiveTransactions           string   `json:"activetransactions"`
 }
 

@@ -34,6 +34,7 @@ type ServiceStats struct {
 	MaxClients                   string   `json:"maxclients"`
 	CurrentLoad                  string   `json:"curload"`
 	ServiceHits                  string   `json:"vsvrservicehits"`
+	ServiceType                  string   `json:"servicetype"`
 	ActiveTransactions           string   `json:"activetransactions"`
 }
 

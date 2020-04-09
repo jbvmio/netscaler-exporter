@@ -2,11 +2,14 @@ package main
 
 import (
 	"encoding/json"
+	"regexp"
 	"sync"
 
 	"github.com/jbvmio/netscaler"
 	"github.com/jbvmio/work"
 )
+
+const modelRegexStr = `[A-Z]{4,}[ -][0-9]+`
 
 // SvcBind represents a service bind configuration.
 type SvcBind struct {
@@ -14,6 +17,12 @@ type SvcBind struct {
 	ServiceName string   `json:"servicename"`
 	Curstate    CurState `json:"curstate"`
 	colTime     int64
+}
+
+// NSHardware represents NSHardware data returned from the Nitro API
+type NSHardware struct {
+	HWDescription   string `json:"hwdescription"`
+	ManufactureYear int    `json:"manufactureyear"`
 }
 
 func (s *SvcBind) svcStats(T *work.Team, w *sync.WaitGroup) RawServiceStats {
@@ -42,6 +51,19 @@ func GetSvcBindings(client *netscaler.NitroClient) ([]SvcBind, error) {
 	return target, nil
 }
 
+// GetNSInfo returns the model, verion and manufacture year for the Netscaler Appliance.
+func GetNSInfo(client *netscaler.NitroClient) (model, version string, year int, err error) {
+	version, err = GetNSVersion(client)
+	if err != nil {
+		return
+	}
+	model, year, err = GetNSModelAndYear(client)
+	if err != nil {
+		return
+	}
+	return
+}
+
 // GetNSVersion take a NitroClient and returns the Netscaler Version.
 func GetNSVersion(client *netscaler.NitroClient) (string, error) {
 	b, err := client.GetAll(netscaler.ConfigTypeNSVersion)
@@ -58,4 +80,31 @@ func GetNSVersion(client *netscaler.NitroClient) (string, error) {
 		return "", err
 	}
 	return tmp.Target.Version, nil
+}
+
+// GetNSModelAndYear take a NitroClient and returns the Netscaler Model and Year.
+func GetNSModelAndYear(client *netscaler.NitroClient) (string, int, error) {
+	b, err := client.GetAll(netscaler.ConfigTypeNSHardware)
+	if err != nil {
+		return "", 0, err
+	}
+	var nsh NSHardware
+	tmp := struct {
+		Data *NSHardware `json:"nshardware"`
+	}{
+		Data: &nsh,
+	}
+	err = json.Unmarshal(b, &tmp)
+	if err != nil {
+		return "", 0, err
+	}
+	regex := regexp.MustCompile(modelRegexStr)
+	model := `unknown`
+	if regex.MatchString(nsh.HWDescription) {
+		groups := regex.FindStringSubmatch(nsh.HWDescription)
+		if len(groups) > 0 {
+			model = groups[0]
+		}
+	}
+	return model, nsh.ManufactureYear, nil
 }

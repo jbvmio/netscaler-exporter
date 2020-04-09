@@ -7,9 +7,8 @@ import (
 const lbvserviceSubsystem = `lbservice`
 
 var lbvserverSvcSubsystem = `service`
-
 var (
-	lbvsvrServiceLabels     = []string{netscalerInstance, `citrixadc_service_name`, `citrixadc_lb_name`}
+	lbvsvrServiceLabels     = []string{netscalerInstance, `citrixadc_service_name`, `citrixadc_lb_name`, `citrixadc_service_type`}
 	lbvsvrServiceThroughput = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,

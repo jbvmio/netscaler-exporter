@@ -30,6 +30,8 @@ type Pool struct {
 	collectMappings bool
 	mappingsLoaded  bool
 	stopped         bool
+	nsModel         string
+	nsYear          int
 	nsVersion       string
 	logger          *zap.Logger
 }

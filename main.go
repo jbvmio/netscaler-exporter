@@ -50,13 +50,16 @@ func main() {
 	}
 	for _, lbs := range config.LBServers {
 		client := netscaler.NewClient(lbs.URL, lbs.User, lbs.Pass, lbs.IgnoreCert)
-		nv, err := GetNSVersion(client)
+		//nv, err := GetNSVersion(client)
+		model, ver, year, err := GetNSInfo(client)
 		switch {
 		case err != nil:
 			L.Error("error validating client, skipping ...", zap.String(`nsInstance`, nsInstance(lbs.URL)), zap.Error(err))
 		default:
 			P := newPool(lbs, L, config.LogLevel)
-			P.nsVersion = nsVersion(nv)
+			P.nsVersion = nsVersion(ver)
+			P.nsModel = model
+			P.nsYear = year
 			P.client = client
 			pools = append(pools, P)
 		}

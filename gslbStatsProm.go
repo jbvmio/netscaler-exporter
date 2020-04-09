@@ -14,7 +14,7 @@ const (
 )
 
 var (
-	gslbVServerLabels           = []string{netscalerInstance, `citrixadc_gslb_name`}
+	gslbVServerLabels           = []string{netscalerInstance, `citrixadc_gslb_name`, `citrixadc_gslb_type`}
 	gslbVServerEstablishedConns = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
@@ -87,7 +87,7 @@ var (
 )
 
 var (
-	gslbVServerSvcLabels = []string{netscalerInstance, `citrixadc_gslb_name`, `citrixadc_gslb_service_name`}
+	gslbVServerSvcLabels = []string{netscalerInstance, `citrixadc_gslb_name`, `citrixadc_gslb_service_name`, `citrixadc_gslb_service_type`}
 
 	gslbServicesEstablishedConns = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
@@ -141,18 +141,18 @@ var (
 )
 
 func (P *Pool) promGSLBVServerStats(ss GSLBVServerStats) {
-	gslbVServerEstablishedConns.WithLabelValues(P.nsInstance, ss.Name).Set(cast.ToFloat64(ss.EstablishedConnections))
-	gslbVServerState.WithLabelValues(P.nsInstance, ss.Name).Set(cast.ToFloat64(ss.State.Value()))
-	gslbVServerHealth.WithLabelValues(P.nsInstance, ss.Name).Set(cast.ToFloat64(ss.Health))
-	gslbVServerActiveServices.WithLabelValues(P.nsInstance, ss.Name).Set(cast.ToFloat64(ss.ActiveServices))
-	gslbVServerTotalHits.WithLabelValues(P.nsInstance, ss.Name).Set(cast.ToFloat64(ss.TotalHits))
-	gslbVServerTotalRequestBytes.WithLabelValues(P.nsInstance, ss.Name).Set(cast.ToFloat64(ss.TotalRequestBytes))
-	gslbVServerTotalResponseBytes.WithLabelValues(P.nsInstance, ss.Name).Set(cast.ToFloat64(ss.TotalResponseBytes))
+	gslbVServerEstablishedConns.WithLabelValues(P.nsInstance, ss.Name, ss.Type).Set(cast.ToFloat64(ss.EstablishedConnections))
+	gslbVServerState.WithLabelValues(P.nsInstance, ss.Name, ss.Type).Set(cast.ToFloat64(ss.State.Value()))
+	gslbVServerHealth.WithLabelValues(P.nsInstance, ss.Name, ss.Type).Set(cast.ToFloat64(ss.Health))
+	gslbVServerActiveServices.WithLabelValues(P.nsInstance, ss.Name, ss.Type).Set(cast.ToFloat64(ss.ActiveServices))
+	gslbVServerTotalHits.WithLabelValues(P.nsInstance, ss.Name, ss.Type).Set(cast.ToFloat64(ss.TotalHits))
+	gslbVServerTotalRequestBytes.WithLabelValues(P.nsInstance, ss.Name, ss.Type).Set(cast.ToFloat64(ss.TotalRequestBytes))
+	gslbVServerTotalResponseBytes.WithLabelValues(P.nsInstance, ss.Name, ss.Type).Set(cast.ToFloat64(ss.TotalResponseBytes))
 	for _, svc := range ss.GSLBService {
-		gslbServicesEstablishedConns.WithLabelValues(P.nsInstance, ss.Name, svc.ServiceName).Set(cast.ToFloat64(svc.EstablishedConnections))
-		gslbServicesHits.WithLabelValues(P.nsInstance, ss.Name, svc.ServiceName).Set(cast.ToFloat64(svc.ServiceHits))
-		gslbServicesState.WithLabelValues(P.nsInstance, ss.Name, svc.ServiceName).Set(cast.ToFloat64(svc.State.Value()))
-		gslbServicesTotalRequestBytes.WithLabelValues(P.nsInstance, ss.Name, svc.ServiceName).Set(cast.ToFloat64(svc.TotalRequestBytes))
-		gslbServicesTotalResponseBytes.WithLabelValues(P.nsInstance, ss.Name, svc.ServiceName).Set(cast.ToFloat64(svc.TotalResponseBytes))
+		gslbServicesEstablishedConns.WithLabelValues(P.nsInstance, ss.Name, svc.ServiceName, svc.ServiceType).Set(cast.ToFloat64(svc.EstablishedConnections))
+		gslbServicesHits.WithLabelValues(P.nsInstance, ss.Name, svc.ServiceName, svc.ServiceType).Set(cast.ToFloat64(svc.ServiceHits))
+		gslbServicesState.WithLabelValues(P.nsInstance, ss.Name, svc.ServiceName, svc.ServiceType).Set(cast.ToFloat64(svc.State.Value()))
+		gslbServicesTotalRequestBytes.WithLabelValues(P.nsInstance, ss.Name, svc.ServiceName, svc.ServiceType).Set(cast.ToFloat64(svc.TotalRequestBytes))
+		gslbServicesTotalResponseBytes.WithLabelValues(P.nsInstance, ss.Name, svc.ServiceName, svc.ServiceType).Set(cast.ToFloat64(svc.TotalResponseBytes))
 	}
 }

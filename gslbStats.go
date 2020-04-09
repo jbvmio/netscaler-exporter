@@ -32,6 +32,7 @@ type GSLBVServerStats struct {
 	TotalResponseBytes       string             `json:"totalresponsebytes"`
 	CurrentClientConnections string             `json:"curclntconnections"`
 	CurrentServerConnections string             `json:"cursrvrconnections"`
+	Type                     string             `json:"type"`
 	GSLBService              []GSLBServiceStats `json:"gslbservice"`
 }
 
@@ -47,6 +48,7 @@ type GSLBServiceStats struct {
 	TotalResponseBytes       string   `json:"totalresponsebytes"`
 	CurrentServerConnections string   `json:"cursrvrconnections"`
 	CurrentLoad              string   `json:"curload"`
+	ServiceType              string   `json:"servicetype"`
 	ServiceHits              string   `json:"vsvrservicehits"`
 }
 

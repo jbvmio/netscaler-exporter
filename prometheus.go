@@ -22,7 +22,7 @@ var TK = &timekeeper{
 
 var (
 	exporterLabels             = []string{netscalerInstance, `citrixadc_subsystem`}
-	nsVerLabels                = []string{netscalerInstance, `citrixadc_nsversion`}
+	nsInfoLabels               = []string{netscalerInstance, `citrixadc_nsmodel`, `citrixadc_nsversion`}
 	exporterAPICollectFailures = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: namespace,
@@ -83,19 +83,38 @@ var (
 		exporterLabels,
 		nil,
 	)
-	exporterNSVersion = prometheus.NewGaugeVec(
+
+	/*
+		exporterNSVersion = prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Namespace: namespace,
+				Subsystem: `ns`,
+				Name:      `version`,
+				Help:      `version of a citrix adc instance`,
+			},
+			nsVerLabels,
+		)
+		exporterNSVersionDesc = prometheus.NewDesc(
+			namespace+`_ns_version`,
+			`version of a citrix adc instance`,
+			nsVerLabels,
+			nil,
+		)
+	*/
+
+	exporterNSYear = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
 			Subsystem: `ns`,
-			Name:      `version`,
-			Help:      `version of a citrix adc instance`,
+			Name:      `year`,
+			Help:      `manufacture year of a citrix adc instance`,
 		},
-		nsVerLabels,
+		nsInfoLabels,
 	)
-	exporterNSVersionDesc = prometheus.NewDesc(
-		namespace+`_ns_version`,
-		`version of a citrix adc instance`,
-		nsVerLabels,
+	exporterNSYearDesc = prometheus.NewDesc(
+		namespace+`_ns_year`,
+		`manufacture year of a citrix adc instance`,
+		nsInfoLabels,
 		nil,
 	)
 )
@@ -103,21 +122,21 @@ var (
 type exporter struct {
 	counterRegistry *prometheus.Registry
 	scrapeLagDesc   *prometheus.Desc
-	nsVersionDesc   *prometheus.Desc
+	nsYearDesc      *prometheus.Desc
 	logger          *zap.Logger
 }
 
 // Describe implements prometheus.Collector.
 func (e *exporter) Describe(ch chan<- *prometheus.Desc) {
 	ch <- e.scrapeLagDesc
-	ch <- e.nsVersionDesc
+	ch <- e.nsYearDesc
 }
 
 // Collect implements prometheus.Collector.
 func (e *exporter) Collect(ch chan<- prometheus.Metric) {
 	wg := sync.WaitGroup{}
 	wg.Add(1)
-	go pools.collectNSVersions(e.nsVersionDesc, ch, &wg)
+	go pools.collectNSYear(e.nsYearDesc, ch, &wg)
 	wg.Add(1)
 	go e.collectCounters(ch, &wg)
 	timeNow := float64(time.Now().UnixNano())
@@ -159,11 +178,11 @@ func (e *exporter) collectCounters(ch chan<- prometheus.Metric, wg *sync.WaitGro
 	}
 }
 
-func (p PoolCollection) collectNSVersions(desc *prometheus.Desc, ch chan<- prometheus.Metric, wg *sync.WaitGroup) {
+func (p PoolCollection) collectNSYear(desc *prometheus.Desc, ch chan<- prometheus.Metric, wg *sync.WaitGroup) {
 	defer wg.Done()
 	for _, P := range p {
 		if P.nsVersion != "" {
-			ch <- prometheus.MustNewConstMetric(desc, prometheus.GaugeValue, 0, P.nsInstance, P.nsVersion)
+			ch <- prometheus.MustNewConstMetric(desc, prometheus.GaugeValue, float64(P.nsYear), P.nsInstance, P.nsModel, P.nsVersion)
 		}
 	}
 }
@@ -172,7 +191,7 @@ func newExporter(cr *prometheus.Registry, l *zap.Logger) *exporter {
 	return &exporter{
 		counterRegistry: cr,
 		scrapeLagDesc:   exporterScrapeLagDesc,
-		nsVersionDesc:   exporterNSVersionDesc,
+		nsYearDesc:      exporterNSYearDesc,
 		logger:          l.With(zap.String("process", "exporter")),
 	}
 }
