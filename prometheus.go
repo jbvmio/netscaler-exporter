@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
+	ioprom "github.com/prometheus/client_model/go"
 	"github.com/spf13/cast"
 	"go.uber.org/zap"
 )
@@ -84,25 +85,6 @@ var (
 		exporterLabels,
 		nil,
 	)
-
-	/*
-		exporterNSVersion = prometheus.NewGaugeVec(
-			prometheus.GaugeOpts{
-				Namespace: namespace,
-				Subsystem: `ns`,
-				Name:      `version`,
-				Help:      `version of a citrix adc instance`,
-			},
-			nsVerLabels,
-		)
-		exporterNSVersionDesc = prometheus.NewDesc(
-			namespace+`_ns_version`,
-			`version of a citrix adc instance`,
-			nsVerLabels,
-			nil,
-		)
-	*/
-
 	exporterNSYear = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: namespace,
@@ -118,27 +100,13 @@ var (
 		nsInfoLabels,
 		nil,
 	)
-	exporterKVPairs = prometheus.NewGaugeVec(
-		prometheus.GaugeOpts{
-			Namespace: namespace,
-			Subsystem: exporterSubsystem,
-			Name:      `kv_pairs`,
-			Help:      `A metric with a constant '1' value exporting key value pairs.`,
-		},
-		exporterKeys,
-	)
-	exporterKVPairsDesc = prometheus.NewDesc(
-		namespace+`_`+exporterSubsystem+`_kv_pairs`,
-		`A metric with a constant '1' value exporting key value pairs.`,
-		exporterKeys,
-		nil,
-	)
 )
 
 type exporter struct {
 	counterRegistry *prometheus.Registry
 	scrapeLagDesc   *prometheus.Desc
 	nsYearDesc      *prometheus.Desc
+	lock            sync.Mutex
 	logger          *zap.Logger
 }
 
@@ -149,6 +117,7 @@ func (e *exporter) Describe(ch chan<- *prometheus.Desc) {
 }
 
 // Collect implements prometheus.Collector.
+/*
 func (e *exporter) Collect(ch chan<- prometheus.Metric) {
 	wg := sync.WaitGroup{}
 	wg.Add(1)
@@ -156,7 +125,6 @@ func (e *exporter) Collect(ch chan<- prometheus.Metric) {
 	wg.Add(1)
 	go e.collectCounters(ch, &wg)
 	wg.Add(1)
-	go collectKVPairs(ch, &wg)
 	timeNow := float64(time.Now().UnixNano())
 	times := TK.retrieve()
 	for ins, sub := range times {
@@ -168,10 +136,28 @@ func (e *exporter) Collect(ch chan<- prometheus.Metric) {
 	}
 	wg.Wait()
 }
+*/
+
+// Collect implements prometheus.Collector.
+func (e *exporter) Collect(ch chan<- prometheus.Metric) {
+	pools.collectNSYear(e.nsYearDesc, ch, nil)
+	e.collectCounters(ch, nil)
+	timeNow := float64(time.Now().UnixNano())
+	times := TK.retrieve()
+	for ins, sub := range times {
+		for s, T := range sub {
+			if T > 0 {
+				ch <- prometheus.MustNewConstMetric(e.scrapeLagDesc, prometheus.GaugeValue, (timeNow-T)/nanoSecond, ins, s)
+			}
+		}
+	}
+}
 
 func (e *exporter) collectCounters(ch chan<- prometheus.Metric, wg *sync.WaitGroup) {
-	defer wg.Done()
-	fams, err := e.counterRegistry.Gather()
+	if wg != nil {
+		defer wg.Done()
+	}
+	fams, err := e.getCounterFamilies()
 	if err != nil {
 		exporterProcessingFailures.WithLabelValues(`all`, `exporter`).Inc()
 		e.logger.Error("error gathering counters", zap.Error(err))
@@ -196,8 +182,17 @@ func (e *exporter) collectCounters(ch chan<- prometheus.Metric, wg *sync.WaitGro
 	}
 }
 
+func (e *exporter) getCounterFamilies() (fams []*ioprom.MetricFamily, err error) {
+	e.lock.Lock()
+	fams, err = e.counterRegistry.Gather()
+	e.lock.Unlock()
+	return
+}
+
 func (p PoolCollection) collectNSYear(desc *prometheus.Desc, ch chan<- prometheus.Metric, wg *sync.WaitGroup) {
-	defer wg.Done()
+	if wg != nil {
+		defer wg.Done()
+	}
 	for _, P := range p {
 		if P.nsVersion != "" {
 			ch <- prometheus.MustNewConstMetric(desc, prometheus.GaugeValue, 1, P.nsInstance, P.nsModel, P.nsVersion, cast.ToString(P.nsYear))
@@ -205,16 +200,12 @@ func (p PoolCollection) collectNSYear(desc *prometheus.Desc, ch chan<- prometheu
 	}
 }
 
-func collectKVPairs(ch chan<- prometheus.Metric, wg *sync.WaitGroup) {
-	defer wg.Done()
-	ch <- prometheus.MustNewConstMetric(exporterKVPairsDesc, prometheus.UntypedValue, 1, exporterValues...)
-}
-
 func newExporter(cr *prometheus.Registry, l *zap.Logger) *exporter {
 	return &exporter{
 		counterRegistry: cr,
 		scrapeLagDesc:   exporterScrapeLagDesc,
 		nsYearDesc:      exporterNSYearDesc,
+		lock:            sync.Mutex{},
 		logger:          l.With(zap.String("process", "exporter")),
 	}
 }
@@ -260,18 +251,4 @@ func (t *timekeeper) retrieve() map[string]map[string]float64 {
 	}
 	t.lock.Unlock()
 	return tmp
-}
-
-var exporterKeys = []string{
-	`DOWN`,
-	`UP`,
-	`OOS`,
-	`UNKNOWN`,
-}
-
-var exporterValues = []string{
-	`0`,
-	`1`,
-	`2`,
-	`3`,
 }

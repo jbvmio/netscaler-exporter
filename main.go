@@ -81,8 +81,8 @@ func main() {
 	httpSrv := http.Server{
 		Handler:      r,
 		Addr:         `:9280`,
-		WriteTimeout: 15 * time.Second,
-		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 60 * time.Second,
+		ReadTimeout:  60 * time.Second,
 	}
 	api := newAPI(L)
 	api.start(&httpSrv)
