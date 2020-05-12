@@ -16,15 +16,24 @@ type Config struct {
 
 // LBServer details for a Netscaler LB:
 type LBServer struct {
-	URL             string   `yaml:"url"`
-	User            string   `yaml:"user"`
-	Pass            string   `yaml:"pass"`
-	IgnoreCert      bool     `yaml:"ignoreCert"`
-	PoolWorkers     int      `yaml:"poolWorkers"`
-	PoolWorkerQueue int      `yaml:"poolWorkerQueue"`
-	CollectMappings bool     `yaml:"collectMappings"`
-	MappingsURL     string   `yaml:"mappingsUrl"`
-	Metrics         []string `yaml:"metrics"`
+	URL             string       `yaml:"url"`
+	User            string       `yaml:"user"`
+	Pass            string       `yaml:"pass"`
+	IgnoreCert      bool         `yaml:"ignoreCert"`
+	PoolWorkers     int          `yaml:"poolWorkers"`
+	PoolWorkerQueue int          `yaml:"poolWorkerQueue"`
+	CollectMappings bool         `yaml:"collectMappings"`
+	MappingsURL     string       `yaml:"mappingsUrl"`
+	UploadConfig    UploadConfig `yaml:"uploadConfig"`
+	Metrics         []string     `yaml:"metrics"`
+}
+
+// UploadConfig is used for saving mappings to the MappingsURL.
+type UploadConfig struct {
+	UploadURL string            `yaml:"uploadUrl"`
+	Method    string            `yaml:"method"`
+	Headers   map[string]string `yaml:"headers"`
+	Insecure  bool              `yaml:"insecure"`
 }
 
 // GetConfig reads in a config file and returns a Config.

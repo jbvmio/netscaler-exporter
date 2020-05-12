@@ -1,9 +1,11 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"reflect"
 	"sync"
 	"time"
 
@@ -21,16 +23,44 @@ type VIPMap struct {
 	lock     sync.Mutex
 }
 
-func (v *VIPMap) updateMappings(key string, maps map[string][]string, l *zap.Logger) {
+func (v *VIPMap) updateMappings(key string, maps map[string][]string, uploadConfig UploadConfig, l *zap.Logger) {
+	var updated bool
+	var err, uploadErr error
 	l.Debug("Recieved Update Mapping Request", zap.Int("Mappings Recieved", len(maps)))
 	v.lock.Lock()
 	_, there := v.mappings[key]
 	if !there {
 		v.mappings[key] = make(map[string][]string)
 	}
-	v.mappings[key] = maps
-	l.Debug("Updated Mappings", zap.Int("Total Mappings", len(maps)))
+	switch {
+	case !reflect.DeepEqual(v.mappings[key], maps):
+		v.mappings[key] = maps
+		updated = true
+		l.Info("Updated Mappings", zap.Int("Total Mappings", len(maps)))
+		err = saveMappingYaml(v.mappings, mappingsDir+`/`+key+`.yaml`)
+		b, errd := yaml.Marshal(v.mappings)
+		if errd != nil {
+			l.Info("error converting mappings to yaml", zap.Error(err))
+		}
+		uploadErr = uploadMappingYaml(uploadConfig, b, l)
+	default:
+		l.Info("No New Mappings, skipping update ...", zap.Int("Total Mappings", len(maps)))
+	}
 	v.lock.Unlock()
+	switch {
+	case updated:
+		switch {
+		case err != nil:
+			l.Error("error saving mappings", zap.String(`instance`, key), zap.Error(err))
+			if uploadErr != nil {
+				l.Error("error uploading mappings", zap.String(`instance`, key), zap.Error(err))
+			}
+		case uploadErr != nil:
+			l.Error("error uploading mappings", zap.String(`instance`, key), zap.Error(err))
+		default:
+			l.Info("successfully saved mappings to " + mappingsDir + `/` + key + `.yaml`)
+		}
+	}
 }
 
 func (v *VIPMap) exists(nsInstance, key string) bool {
@@ -95,7 +125,11 @@ func (v *VIPMap) loadMappingFromURLYaml(url string) error {
 }
 
 func (v *VIPMap) saveMappingYaml(path string) error {
-	b, err := yaml.Marshal(v.mappings)
+	return saveMappingYaml(v.mappings, path)
+}
+
+func saveMappingYaml(mappings map[string]map[string][]string, path string) error {
+	b, err := yaml.Marshal(mappings)
 	if err != nil {
 		return err
 	}
@@ -104,6 +138,32 @@ func (v *VIPMap) saveMappingYaml(path string) error {
 		return err
 	}
 	return nil
+}
+
+func uploadMappingYaml(c UploadConfig, payload []byte, l *zap.Logger) error {
+	if c.UploadURL == "" || len(payload) < 1 {
+		return nil
+	}
+	req, err := http.NewRequest(c.Method, c.UploadURL, bytes.NewBuffer(payload))
+	if err != nil {
+		return err
+	}
+	for k, v := range c.Headers {
+		req.Header.Add(k, v)
+	}
+	client := http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	switch resp.StatusCode {
+	case 201:
+		l.Info("successfully uploaded mappings", zap.String(`uploadURL`, c.UploadURL))
+		return nil
+	default:
+		return fmt.Errorf("received non 201 status: %s", resp.Status)
+	}
 }
 
 func collectMappings(P *Pool, force bool, wg *sync.WaitGroup) {
@@ -178,8 +238,7 @@ func collectMappings(P *Pool, force bool, wg *sync.WaitGroup) {
 	for _, svc := range svcB {
 		tmpMap[svc.ServiceName] = append(tmpMap[svc.ServiceName], svc.Name)
 	}
-	P.vipMap.updateMappings(P.nsInstance, tmpMap, P.logger)
+	P.vipMap.updateMappings(P.nsInstance, tmpMap, P.lbserver.UploadConfig, P.logger)
 	P.logger.Info("Mappings Collection Complete", zap.Int("Total Mappings", len(tmpMap)))
 	P.mappingsLoaded = true
-	P.vipMap.saveMappingYaml(mappingsDir + `/` + P.nsInstance + `.yaml`)
 }

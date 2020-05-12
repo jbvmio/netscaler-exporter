@@ -6,6 +6,14 @@ lbservers:
   ignoreCert: true
   poolWorkers: 50
   poolWorkerQueue: 1000
+  collectMappings: true
+  mappingsUrl: https://mymappings.com/ns.yaml
+  uploadConfig:
+    uploadUrl: https://mymappings.com/ns.yaml
+    method: PUT
+    insecure: true
+    headers:
+      header1: value1
   metrics:
   - ns
   - ssl

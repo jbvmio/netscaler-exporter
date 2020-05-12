@@ -183,23 +183,30 @@ func (P *Pool) promLBVServerStats(N NitroData) {
 		}
 	case ServiceStats:
 		svcNames := P.vipMap.getMappings(P.nsInstance, ss.Name, P.logger)
-		for _, svcName := range svcNames {
-			lbvsvrServiceThroughput.WithLabelValues(P.nsInstance, ss.Name, svcName, ss.ServiceType).Set(cast.ToFloat64(ss.Throughput) * 1024 * 1024)
-			lbvsvrServiceAvgTTFB.WithLabelValues(P.nsInstance, ss.Name, svcName, ss.ServiceType).Set(cast.ToFloat64(ss.AvgTimeToFirstByte) * 0.001)
-			lbvsvrServiceState.WithLabelValues(P.nsInstance, ss.Name, svcName, ss.ServiceType).Set(ss.State.Value())
-			lbvsvrServiceTotalRequests.WithLabelValues(P.nsInstance, ss.Name, svcName, ss.ServiceType).Set(cast.ToFloat64(ss.TotalRequests))
-			lbvsvrServiceTotalResponses.WithLabelValues(P.nsInstance, ss.Name, svcName, ss.ServiceType).Set(cast.ToFloat64(ss.TotalResponses))
-			lbvsvrServiceTotalRequestBytes.WithLabelValues(P.nsInstance, ss.Name, svcName, ss.ServiceType).Set(cast.ToFloat64(ss.TotalRequestBytes))
-			lbvsvrServiceTotalResponseBytes.WithLabelValues(P.nsInstance, ss.Name, svcName, ss.ServiceType).Set(cast.ToFloat64(ss.TotalResponseBytes))
-			lbvsvrServiceCurrentClientConns.WithLabelValues(P.nsInstance, ss.Name, svcName, ss.ServiceType).Set(cast.ToFloat64(ss.CurrentClientConnections))
-			lbvsvrServiceCurrentServerConns.WithLabelValues(P.nsInstance, ss.Name, svcName, ss.ServiceType).Set(cast.ToFloat64(ss.CurrentServerConnections))
-			lbvsvrServiceSurgeCount.WithLabelValues(P.nsInstance, ss.Name, svcName, ss.ServiceType).Set(cast.ToFloat64(ss.SurgeCount))
-			lbvsvrServiceServerEstablishedConnections.WithLabelValues(P.nsInstance, ss.Name, svcName, ss.ServiceType).Set(cast.ToFloat64(ss.ServerEstablishedConnections))
-			lbvsvrServiceCurrentReusePool.WithLabelValues(P.nsInstance, ss.Name, svcName, ss.ServiceType).Set(cast.ToFloat64(ss.CurrentReusePool))
-			lbvsvrServiceMaxClients.WithLabelValues(P.nsInstance, ss.Name, svcName, ss.ServiceType).Set(cast.ToFloat64(ss.MaxClients))
-			lbvsvrServiceCurrentLoad.WithLabelValues(P.nsInstance, ss.Name, svcName, ss.ServiceType).Set(cast.ToFloat64(ss.CurrentLoad))
-			lbvsvrServiceVirtualServerServiceHits.WithLabelValues(P.nsInstance, ss.Name, svcName, ss.ServiceType).Set(cast.ToFloat64(ss.ServiceHits))
-			lbvsvrServiceActiveTransactions.WithLabelValues(P.nsInstance, ss.Name, svcName, ss.ServiceType).Set(cast.ToFloat64(ss.ActiveTransactions))
+		switch len(svcNames) {
+		case 0:
+			if P.collectMappings {
+				go collectMappings(P, true, nil)
+			}
+		default:
+			for _, svcName := range svcNames {
+				lbvsvrServiceThroughput.WithLabelValues(P.nsInstance, ss.Name, svcName, ss.ServiceType).Set(cast.ToFloat64(ss.Throughput) * 1024 * 1024)
+				lbvsvrServiceAvgTTFB.WithLabelValues(P.nsInstance, ss.Name, svcName, ss.ServiceType).Set(cast.ToFloat64(ss.AvgTimeToFirstByte) * 0.001)
+				lbvsvrServiceState.WithLabelValues(P.nsInstance, ss.Name, svcName, ss.ServiceType).Set(ss.State.Value())
+				lbvsvrServiceTotalRequests.WithLabelValues(P.nsInstance, ss.Name, svcName, ss.ServiceType).Set(cast.ToFloat64(ss.TotalRequests))
+				lbvsvrServiceTotalResponses.WithLabelValues(P.nsInstance, ss.Name, svcName, ss.ServiceType).Set(cast.ToFloat64(ss.TotalResponses))
+				lbvsvrServiceTotalRequestBytes.WithLabelValues(P.nsInstance, ss.Name, svcName, ss.ServiceType).Set(cast.ToFloat64(ss.TotalRequestBytes))
+				lbvsvrServiceTotalResponseBytes.WithLabelValues(P.nsInstance, ss.Name, svcName, ss.ServiceType).Set(cast.ToFloat64(ss.TotalResponseBytes))
+				lbvsvrServiceCurrentClientConns.WithLabelValues(P.nsInstance, ss.Name, svcName, ss.ServiceType).Set(cast.ToFloat64(ss.CurrentClientConnections))
+				lbvsvrServiceCurrentServerConns.WithLabelValues(P.nsInstance, ss.Name, svcName, ss.ServiceType).Set(cast.ToFloat64(ss.CurrentServerConnections))
+				lbvsvrServiceSurgeCount.WithLabelValues(P.nsInstance, ss.Name, svcName, ss.ServiceType).Set(cast.ToFloat64(ss.SurgeCount))
+				lbvsvrServiceServerEstablishedConnections.WithLabelValues(P.nsInstance, ss.Name, svcName, ss.ServiceType).Set(cast.ToFloat64(ss.ServerEstablishedConnections))
+				lbvsvrServiceCurrentReusePool.WithLabelValues(P.nsInstance, ss.Name, svcName, ss.ServiceType).Set(cast.ToFloat64(ss.CurrentReusePool))
+				lbvsvrServiceMaxClients.WithLabelValues(P.nsInstance, ss.Name, svcName, ss.ServiceType).Set(cast.ToFloat64(ss.MaxClients))
+				lbvsvrServiceCurrentLoad.WithLabelValues(P.nsInstance, ss.Name, svcName, ss.ServiceType).Set(cast.ToFloat64(ss.CurrentLoad))
+				lbvsvrServiceVirtualServerServiceHits.WithLabelValues(P.nsInstance, ss.Name, svcName, ss.ServiceType).Set(cast.ToFloat64(ss.ServiceHits))
+				lbvsvrServiceActiveTransactions.WithLabelValues(P.nsInstance, ss.Name, svcName, ss.ServiceType).Set(cast.ToFloat64(ss.ActiveTransactions))
+			}
 		}
 	}
 }
