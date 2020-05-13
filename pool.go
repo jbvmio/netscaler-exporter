@@ -21,6 +21,7 @@ type Pool struct {
 	poolWG          sync.WaitGroup
 	backoff         *MiscMap
 	poolFlipBit     *FlipBit
+	mappingFlipBit  *FlipBit
 	metricClients   map[string]*netscaler.NitroClient
 	metricHandlers  map[string]metricHandleFunc
 	metricFlipBit   map[string]*FlipBit
@@ -51,6 +52,7 @@ func newPool(lbs LBServer, logger *zap.Logger, loglevel string) *Pool {
 		lbserver:        lbs,
 		collectMappings: lbs.CollectMappings,
 		poolFlipBit:     &FlipBit{lock: sync.Mutex{}},
+		mappingFlipBit:  &FlipBit{lock: sync.Mutex{}},
 		metricFlipBit:   make(map[string]*FlipBit, len(lbs.Metrics)),
 		backoff: &MiscMap{
 			data: make(map[string]interface{}, len(lbs.Metrics)),

@@ -175,70 +175,76 @@ func collectMappings(P *Pool, force bool, wg *sync.WaitGroup) {
 		return
 	}
 	switch {
-	case force:
-		P.logger.Info("Refreshing Mappings")
-	case P.lbserver.MappingsURL != "":
-		err := P.vipMap.loadMappingFromURLYaml(P.lbserver.MappingsURL)
+	case P.mappingFlipBit.good():
+		defer P.mappingFlipBit.flip()
 		switch {
-		case err == nil:
-			P.logger.Info("Loaded mappings from url", zap.Int("Total Mappings", len(P.vipMap.mappings[P.nsInstance])))
-			P.mappingsLoaded = true
-			P.vipMap.saveMappingYaml(mappingsDir + `/` + P.nsInstance + `.yaml`)
-			return
+		case force:
+			P.logger.Info("Refreshing Mappings")
+		case P.lbserver.MappingsURL != "":
+			err := P.vipMap.loadMappingFromURLYaml(P.lbserver.MappingsURL)
+			switch {
+			case err == nil:
+				P.logger.Info("Loaded mappings from url", zap.Int("Total Mappings", len(P.vipMap.mappings[P.nsInstance])))
+				P.mappingsLoaded = true
+				P.vipMap.saveMappingYaml(mappingsDir + `/` + P.nsInstance + `.yaml`)
+				return
+			default:
+				P.logger.Error("could not load mappings from url, received error, trying file ...", zap.Error(err))
+				err := P.vipMap.loadMappingYaml(mappingsDir + `/` + P.nsInstance + `.yaml`)
+				if err == nil {
+					P.logger.Info("Loaded mappings from file", zap.Int("Total Mappings", len(P.vipMap.mappings[P.nsInstance])))
+					P.mappingsLoaded = true
+					return
+				}
+			}
 		default:
-			P.logger.Error("could not load mappings from url, received error, trying file ...", zap.Error(err))
 			err := P.vipMap.loadMappingYaml(mappingsDir + `/` + P.nsInstance + `.yaml`)
-			if err == nil {
+			switch {
+			case err == nil:
 				P.logger.Info("Loaded mappings from file", zap.Int("Total Mappings", len(P.vipMap.mappings[P.nsInstance])))
 				P.mappingsLoaded = true
 				return
+			default:
+				P.logger.Warn("could not load default mappings from file, received error", zap.Error(err))
+				P.logger.Info("Collecting Mappings")
 			}
 		}
-	default:
-		err := P.vipMap.loadMappingYaml(mappingsDir + `/` + P.nsInstance + `.yaml`)
-		switch {
-		case err == nil:
-			P.logger.Info("Loaded mappings from file", zap.Int("Total Mappings", len(P.vipMap.mappings[P.nsInstance])))
-			P.mappingsLoaded = true
-			return
-		default:
-			P.logger.Warn("could not load default mappings from file, received error", zap.Error(err))
-			P.logger.Info("Collecting Mappings")
-		}
-	}
-	var pr bool
-	svcB, err := GetSvcBindings(P.client)
-	if err != nil {
-		P.logger.Error("error retrieving data", zap.Error(err))
-		exporterAPICollectFailures.WithLabelValues(P.nsInstance, mappingSubsystem).Inc()
-		if P.mappingsLoaded {
-			return
-		}
-	} else {
-		pr = true
-	}
-	for !pr {
-		if P.stopped {
-			P.logger.Info("Skipping Mapping Collection, process is stopping")
-			return
-		}
-		time.Sleep(time.Second * 3)
-		P.logger.Info("Retrying Mapping Collection")
-		P.client.WithHTTPTimeout(time.Second * 120)
-		svcB, err = GetSvcBindings(P.client)
+		var pr bool
+		svcB, err := GetSvcBindings(P.client)
 		if err != nil {
 			P.logger.Error("error retrieving data", zap.Error(err))
 			exporterAPICollectFailures.WithLabelValues(P.nsInstance, mappingSubsystem).Inc()
+			if P.mappingsLoaded {
+				return
+			}
 		} else {
 			pr = true
-			P.client.WithHTTPTimeout(time.Second * 60)
 		}
+		for !pr {
+			if P.stopped {
+				P.logger.Info("Skipping Mapping Collection, process is stopping")
+				return
+			}
+			time.Sleep(time.Second * 3)
+			P.logger.Info("Retrying Mapping Collection")
+			P.client.WithHTTPTimeout(time.Second * 120)
+			svcB, err = GetSvcBindings(P.client)
+			if err != nil {
+				P.logger.Error("error retrieving data", zap.Error(err))
+				exporterAPICollectFailures.WithLabelValues(P.nsInstance, mappingSubsystem).Inc()
+			} else {
+				pr = true
+				P.client.WithHTTPTimeout(time.Second * 60)
+			}
+		}
+		tmpMap := make(map[string][]string)
+		for _, svc := range svcB {
+			tmpMap[svc.ServiceName] = append(tmpMap[svc.ServiceName], svc.Name)
+		}
+		P.vipMap.updateMappings(P.nsInstance, tmpMap, P.lbserver.UploadConfig, P.logger)
+		P.logger.Info("Mappings Collection Complete", zap.Int("Total Mappings", len(tmpMap)))
+		P.mappingsLoaded = true
+	default:
+		P.logger.Info("Skipping Mapping Collection, already in progress")
 	}
-	tmpMap := make(map[string][]string)
-	for _, svc := range svcB {
-		tmpMap[svc.ServiceName] = append(tmpMap[svc.ServiceName], svc.Name)
-	}
-	P.vipMap.updateMappings(P.nsInstance, tmpMap, P.lbserver.UploadConfig, P.logger)
-	P.logger.Info("Mappings Collection Complete", zap.Int("Total Mappings", len(tmpMap)))
-	P.mappingsLoaded = true
 }
