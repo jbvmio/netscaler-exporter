@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"net/http"
 	"regexp"
 	"sync"
 
@@ -107,4 +108,10 @@ func GetNSModelAndYear(client *netscaler.NitroClient) (string, int, error) {
 		}
 	}
 	return model, nsh.ManufactureYear, nil
+}
+
+func collectInfoHandler(w http.ResponseWriter, r *http.Request) {
+	go pools.collectNSInfo()
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(`{"status":"request sent"}`))
 }

@@ -107,3 +107,18 @@ func (p PoolCollection) collectMappings(wg *sync.WaitGroup, force bool) {
 		}
 	}
 }
+
+func (p PoolCollection) collectNSInfo() {
+	for _, P := range p {
+		P.logger.Info("Refreshing Netscaler Info")
+		model, ver, year, err := GetNSInfo(P.client)
+		switch {
+		case err != nil:
+			P.logger.Error("error validating client, skipping ...", zap.Error(err))
+		default:
+			P.nsVersion = nsVersion(ver)
+			P.nsModel = model
+			P.nsYear = year
+		}
+	}
+}

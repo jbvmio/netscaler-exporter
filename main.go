@@ -77,6 +77,7 @@ func main() {
 	handleProm := makeProm(R, L)
 	r := mux.NewRouter()
 	r.Handle(`/metrics`, handleProm)
+	r.HandleFunc(`/update/info`, collectInfoHandler)
 	r.PathPrefix(`/mappings/`).Handler(http.StripPrefix(`/mappings/`, http.FileServer(http.Dir(mappingsDir))))
 	httpSrv := http.Server{
 		Handler:      r,
