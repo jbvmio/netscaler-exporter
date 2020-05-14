@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/cast"
+	"go.uber.org/zap"
 )
 
 // https://developer-docs.citrix.com/projects/netscaler-nitro-api/en/12.0/statistics/load-balancing/lbvserver/lbvserver/
@@ -185,9 +186,12 @@ func (P *Pool) promLBVServerStats(N NitroData) {
 		svcNames := P.vipMap.getMappings(P.nsInstance, ss.Name, P.logger)
 		switch len(svcNames) {
 		case 0:
+			P.logger.Debug("no bindings found for service", zap.String("service", ss.Name))
+			/* Needs work. Leftover services needing cleaned up causes repeated updates. Using interval.
 			if P.collectMappings {
 				go collectMappings(P, true, nil)
 			}
+			*/
 		default:
 			for _, svcName := range svcNames {
 				lbvsvrServiceThroughput.WithLabelValues(P.nsInstance, ss.Name, svcName, ss.ServiceType).Set(cast.ToFloat64(ss.Throughput) * 1024 * 1024)
