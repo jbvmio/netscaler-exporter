@@ -7,8 +7,6 @@ import (
 	"go.uber.org/zap"
 )
 
-//const updateMappingIntervalSeconds = 3600
-
 var (
 	collectionWG    sync.WaitGroup
 	collectionStop  chan struct{}
@@ -29,15 +27,12 @@ func (p PoolCollection) startCollecting(l *zap.Logger) {
 		defer wg.Done()
 		logger.Info("Starting Metric Collection")
 		ticker := time.NewTicker(collectInterval)
-		//mappingTicker := time.NewTicker(time.Second * updateMappingIntervalSeconds)
 	collectLoop:
 		for {
 			select {
 			case <-collectionStop:
 				logger.Warn("Stopping Metric Collection")
 				break collectLoop
-			//case <-mappingTicker.C:
-			//	p.collectMappings(nil, true)
 			case <-ticker.C:
 				collectionWG.Add(1)
 				go p.processAll(&collectionWG, logger)

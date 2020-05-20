@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"net/http"
+	"net/http/httptest"
 	"strings"
 	"sync"
 	"time"
@@ -44,6 +45,29 @@ func (a *API) start(httpSrv *http.Server) {
 			}
 		}
 		a.logger.Info("Stopped.")
+	}()
+
+	a.wg.Add(1)
+	go func() {
+		defer a.wg.Done()
+	intervalLoop:
+		for {
+			timeNow := time.Now()
+			tomorrow := timeNow.Add(time.Hour * 24)
+			y, m, d := tomorrow.Date()
+			target := time.Date(y, m, d, 3, 30, 0, 0, time.UTC)
+			dur := target.Sub(timeNow)
+			timer := time.NewTimer(dur)
+			select {
+			case <-a.stopChan:
+				break intervalLoop
+			case <-timer.C:
+				w1 := httptest.NewRecorder()
+				w2 := httptest.NewRecorder()
+				a.collectInfoHandler(w1, nil)
+				a.updateMappingsHandler(w2, nil)
+			}
+		}
 	}()
 }
 

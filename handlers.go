@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
@@ -123,7 +124,7 @@ func (a *API) collectInfoHandler(w http.ResponseWriter, r *http.Request) {
 		tmp.Previous = a.lastInfo.String()
 	}
 	w.WriteHeader(http.StatusOK)
-	tmpl.Execute(w, tmp)
+	fmt.Println("ERR:", tmpl.Execute(w, tmp))
 }
 
 func flipAfter(FB *FlipBit, dur time.Duration) {
