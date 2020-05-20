@@ -14,16 +14,22 @@ import (
 
 // API for Promethues.
 type API struct {
-	stopChan chan struct{}
-	wg       sync.WaitGroup
-	logger   *zap.Logger
+	stopChan    chan struct{}
+	wg          sync.WaitGroup
+	mappingFB   *FlipBit
+	infoFB      *FlipBit
+	lastMapping time.Time
+	lastInfo    time.Time
+	logger      *zap.Logger
 }
 
 func newAPI(L *zap.Logger) *API {
 	return &API{
-		stopChan: make(chan struct{}),
-		wg:       sync.WaitGroup{},
-		logger:   L.With(zap.String(`process`, `Metrics Exporter API`)),
+		stopChan:  make(chan struct{}),
+		mappingFB: &FlipBit{lock: sync.Mutex{}},
+		infoFB:    &FlipBit{lock: sync.Mutex{}},
+		wg:        sync.WaitGroup{},
+		logger:    L.With(zap.String(`process`, `Metrics Exporter API`)),
 	}
 }
 

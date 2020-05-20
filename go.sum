@@ -61,14 +61,6 @@ github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0/go.mod h1:8NvIoxWQoOIhqOTXgf
 github.com/grpc-ecosystem/grpc-gateway v1.9.0/go.mod h1:vNeuVxBJEsws4ogUvrchl83t/GYV9WGTSLVdBhOQFDY=
 github.com/hashicorp/hcl v1.0.0 h1:0Anlzjpi4vEasTeNFn2mLJgTSwt0+6sfsiTG8qcWGx4=
 github.com/hashicorp/hcl v1.0.0/go.mod h1:E5yfLk+7swimpb2L/Alb/PJmXilQ/rhwaUYs4T20WEQ=
-github.com/jbvmio/netscaler v0.0.0-20200325031330-053dc8771252 h1:sj7s+pOizNyYKIoLwMBlBrfzQJco3sTIj/T/P/Y9O5U=
-github.com/jbvmio/netscaler v0.0.0-20200325031330-053dc8771252/go.mod h1:m/qqhgvMEBxIc+wY3jZObxTVmAXc5msQ0Slv3CzG97Y=
-github.com/jbvmio/netscaler v0.0.0-20200327160959-923a59e37a38 h1:q/Ym58pY9enN1Ls6tu5gryKr+8T+horWn4Z4uMF2o0A=
-github.com/jbvmio/netscaler v0.0.0-20200327160959-923a59e37a38/go.mod h1:m/qqhgvMEBxIc+wY3jZObxTVmAXc5msQ0Slv3CzG97Y=
-github.com/jbvmio/netscaler v0.0.0-20200409031357-f90965cee21b h1:2FFAsmn8LRALU5qaNy0LgVZdHj0CjzhxsfyL3SjDszE=
-github.com/jbvmio/netscaler v0.0.0-20200409031357-f90965cee21b/go.mod h1:xGeao6OsKhePSxlK6ZMgM0y80vMliMCd/TqZlKbEOhY=
-github.com/jbvmio/netscaler v0.0.0-20200409170641-249894a27e72 h1:qZ3ppcUBB4DjWQyxm8FxVeWFPebgxNKqFnFDpSlwdJ4=
-github.com/jbvmio/netscaler v0.0.0-20200409170641-249894a27e72/go.mod h1:xGeao6OsKhePSxlK6ZMgM0y80vMliMCd/TqZlKbEOhY=
 github.com/jbvmio/netscaler v0.0.0-20200409175622-4814a6e76b93 h1:/lVbnLWDrLRr/wmdBbJHdd7VZEuUL8omNjfUrdA0D4U=
 github.com/jbvmio/netscaler v0.0.0-20200409175622-4814a6e76b93/go.mod h1:xGeao6OsKhePSxlK6ZMgM0y80vMliMCd/TqZlKbEOhY=
 github.com/jbvmio/work v0.0.0-20190326173353-ae5c35a42075 h1:sIE5K4yPF+ohYSQy9YHDW9BANufCh3T3zs/ctteJUD4=

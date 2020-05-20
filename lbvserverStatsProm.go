@@ -187,7 +187,7 @@ func (P *Pool) promLBVServerStats(N NitroData) {
 		switch len(svcNames) {
 		case 0:
 			P.logger.Debug("no bindings found for service", zap.String("service", ss.Name))
-			/* Needs work. Leftover services needing cleaned up causes repeated updates. Using interval.
+			/* Needs work. Leftover services needing cleaned up causes repeated updates. Use interval or handler for now.
 			if P.collectMappings {
 				go collectMappings(P, true, nil)
 			}

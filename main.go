@@ -72,12 +72,15 @@ func main() {
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 
 	pools.collectMappings(nil, false)
+	api := newAPI(L)
 
 	R := makeCounterRegistry()
 	handleProm := makeProm(R, L)
 	r := mux.NewRouter()
 	r.Handle(`/metrics`, handleProm)
-	r.HandleFunc(`/update/info`, collectInfoHandler)
+	r.HandleFunc(`/ops`, api.opsHandler)
+	r.HandleFunc(`/update/info`, api.collectInfoHandler)
+	r.HandleFunc(`/update/mappings`, api.updateMappingsHandler)
 	r.PathPrefix(`/mappings/`).Handler(http.StripPrefix(`/mappings/`, http.FileServer(http.Dir(mappingsDir))))
 	httpSrv := http.Server{
 		Handler:      r,
@@ -85,7 +88,6 @@ func main() {
 		WriteTimeout: 60 * time.Second,
 		ReadTimeout:  60 * time.Second,
 	}
-	api := newAPI(L)
 	api.start(&httpSrv)
 	pools.startCollecting(L)
 
