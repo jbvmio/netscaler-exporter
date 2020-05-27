@@ -35,6 +35,7 @@ type Pool struct {
 	nsYear          int
 	nsVersion       string
 	logger          *zap.Logger
+	labelTTLs       *LabelTTLs
 }
 
 func newPool(lbs LBServer, logger *zap.Logger, loglevel string) *Pool {
@@ -60,6 +61,11 @@ func newPool(lbs LBServer, logger *zap.Logger, loglevel string) *Pool {
 		},
 		nsInstance: nsInstance(lbs.URL),
 		logger:     logger.With(zap.String(`nsInstance`, nsInstance(lbs.URL))),
+		labelTTLs: &LabelTTLs{
+			labelValues: make(map[uint64]map[uint64]*LabelValues, 0),
+			ttl:         time.Minute * 5,
+			lock:        sync.Mutex{},
+		},
 	}
 	if loglevel == `trace` {
 		team.Logger = pool.logger

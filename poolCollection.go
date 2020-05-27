@@ -27,12 +27,15 @@ func (p PoolCollection) startCollecting(l *zap.Logger) {
 		defer wg.Done()
 		logger.Info("Starting Metric Collection")
 		ticker := time.NewTicker(collectInterval)
+		stale := time.NewTicker(time.Minute * 15)
 	collectLoop:
 		for {
 			select {
 			case <-collectionStop:
 				logger.Warn("Stopping Metric Collection")
 				break collectLoop
+			case <-stale.C:
+				go p.removeStale()
 			case <-ticker.C:
 				collectionWG.Add(1)
 				go p.processAll(&collectionWG, logger)
@@ -115,5 +118,12 @@ func (p PoolCollection) collectNSInfo() {
 			P.nsModel = model
 			P.nsYear = year
 		}
+	}
+}
+
+func (p PoolCollection) removeStale() {
+	for _, P := range p {
+		P.logger.Info("Removing Stale Netscaler Metrics")
+		P.labelTTLs.deleteStale()
 	}
 }

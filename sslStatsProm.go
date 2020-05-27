@@ -42,4 +42,11 @@ func (P *Pool) promSSLStats(ss SSLStats) {
 	sslTotalTransactions.WithLabelValues(P.nsInstance).Set(cast.ToFloat64(ss.TotalSSLTransactions))
 	sslTotalSessions.WithLabelValues(P.nsInstance).Set(cast.ToFloat64(ss.TotalSSLSessions))
 	sslCurrentSessions.WithLabelValues(P.nsInstance).Set(cast.ToFloat64(ss.SSLSessions))
+	P.labelTTLs.setTTL(sslStatCollection, P.nsInstance)
+}
+
+var sslStatCollection = gaugeCollection{
+	sslTotalTransactions,
+	sslTotalSessions,
+	sslCurrentSessions,
 }

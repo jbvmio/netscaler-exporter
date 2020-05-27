@@ -22,4 +22,9 @@ var (
 
 func (P *Pool) promLBVServerConfigs(ss LBVServerConfigs) {
 	lbvserverLastStateChangeSecs.WithLabelValues(P.nsInstance, ss.Name).Set(cast.ToFloat64(ss.StateChangeTimeSeconds))
+	P.labelTTLs.setTTL(lbvserverConfigCollection, P.nsInstance, ss.Name)
+}
+
+var lbvserverConfigCollection = gaugeCollection{
+	lbvserverLastStateChangeSecs,
 }

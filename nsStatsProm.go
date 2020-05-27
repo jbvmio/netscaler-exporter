@@ -167,4 +167,22 @@ func (P *Pool) promNSStats(ss NSStats) {
 	nsTCPCurClientConnsEst.WithLabelValues(P.nsInstance).Set(cast.ToFloat64(ss.TCPCurrentClientConnectionsEstablished))
 	nsTCPCurServerConns.WithLabelValues(P.nsInstance).Set(cast.ToFloat64(ss.TCPCurrentServerConnections))
 	nsTCPCurServerConnsEst.WithLabelValues(P.nsInstance).Set(cast.ToFloat64(ss.TCPCurrentServerConnectionsEstablished))
+	P.labelTTLs.setTTL(nsStatCollection, P.nsInstance)
+}
+
+var nsStatCollection = gaugeCollection{
+	nsCPUUsagePct,
+	nsMemUsagePct,
+	nsMgmtCPUUsagePct,
+	nsPktCPUUsagePct,
+	nsFlashPartUsage,
+	nsVarPartUsage,
+	nsTotalRxBytes,
+	nsTotalTxBytes,
+	nsHTTPReqsTotal,
+	nsHTTPRespTotal,
+	nsTCPCurClientConns,
+	nsTCPCurClientConnsEst,
+	nsTCPCurServerConns,
+	nsTCPCurServerConnsEst,
 }

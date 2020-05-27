@@ -148,11 +148,31 @@ func (P *Pool) promGSLBVServerStats(ss GSLBVServerStats) {
 	gslbVServerTotalHits.WithLabelValues(P.nsInstance, ss.Name, ss.Type).Set(cast.ToFloat64(ss.TotalHits))
 	gslbVServerTotalRequestBytes.WithLabelValues(P.nsInstance, ss.Name, ss.Type).Set(cast.ToFloat64(ss.TotalRequestBytes))
 	gslbVServerTotalResponseBytes.WithLabelValues(P.nsInstance, ss.Name, ss.Type).Set(cast.ToFloat64(ss.TotalResponseBytes))
+	P.labelTTLs.setTTL(gslbvserverStatCollection, P.nsInstance, ss.Name, ss.Type)
 	for _, svc := range ss.GSLBService {
 		gslbServicesEstablishedConns.WithLabelValues(P.nsInstance, ss.Name, svc.ServiceName, svc.ServiceType).Set(cast.ToFloat64(svc.EstablishedConnections))
 		gslbServicesHits.WithLabelValues(P.nsInstance, ss.Name, svc.ServiceName, svc.ServiceType).Set(cast.ToFloat64(svc.ServiceHits))
 		gslbServicesState.WithLabelValues(P.nsInstance, ss.Name, svc.ServiceName, svc.ServiceType).Set(cast.ToFloat64(svc.State.Value()))
 		gslbServicesTotalRequestBytes.WithLabelValues(P.nsInstance, ss.Name, svc.ServiceName, svc.ServiceType).Set(cast.ToFloat64(svc.TotalRequestBytes))
 		gslbServicesTotalResponseBytes.WithLabelValues(P.nsInstance, ss.Name, svc.ServiceName, svc.ServiceType).Set(cast.ToFloat64(svc.TotalResponseBytes))
+		P.labelTTLs.setTTL(gslbServiceCollection, P.nsInstance, ss.Name, svc.ServiceName, svc.ServiceType)
 	}
+}
+
+var gslbvserverStatCollection = gaugeCollection{
+	gslbVServerEstablishedConns,
+	gslbVServerState,
+	gslbVServerHealth,
+	gslbVServerActiveServices,
+	gslbVServerTotalHits,
+	gslbVServerTotalRequestBytes,
+	gslbVServerTotalResponseBytes,
+}
+
+var gslbServiceCollection = gaugeCollection{
+	gslbServicesEstablishedConns,
+	gslbServicesHits,
+	gslbServicesState,
+	gslbServicesTotalRequestBytes,
+	gslbServicesTotalResponseBytes,
 }

@@ -164,6 +164,7 @@ func (P *Pool) promLBVServerStats(N NitroData) {
 		lbvserverSurgeCount.WithLabelValues(P.nsInstance, ss.Name, ss.Type).Set(cast.ToFloat64(ss.SurgeCount))
 		lbvserverSvcSurgeCount.WithLabelValues(P.nsInstance, ss.Name, ss.Type).Set(cast.ToFloat64(ss.SvcSurgeCount))
 		lbvserverVSvrSurgeCount.WithLabelValues(P.nsInstance, ss.Name, ss.Type).Set(cast.ToFloat64(ss.VSvrSurgeCount))
+		P.labelTTLs.setTTL(lbvserverStatCollection, P.nsInstance, ss.Name, ss.Type)
 		for _, svc := range ss.LBService {
 			lbvsvrServiceThroughput.WithLabelValues(P.nsInstance, svc.Name, ss.Name, svc.ServiceType).Set(cast.ToFloat64(svc.Throughput) * 1024 * 1024)
 			lbvsvrServiceAvgTTFB.WithLabelValues(P.nsInstance, svc.Name, ss.Name, svc.ServiceType).Set(cast.ToFloat64(svc.AvgTimeToFirstByte) * 0.001)
@@ -181,6 +182,7 @@ func (P *Pool) promLBVServerStats(N NitroData) {
 			lbvsvrServiceCurrentLoad.WithLabelValues(P.nsInstance, svc.Name, ss.Name, svc.ServiceType).Set(cast.ToFloat64(svc.CurrentLoad))
 			lbvsvrServiceVirtualServerServiceHits.WithLabelValues(P.nsInstance, svc.Name, ss.Name, svc.ServiceType).Set(cast.ToFloat64(svc.ServiceHits))
 			lbvsvrServiceActiveTransactions.WithLabelValues(P.nsInstance, svc.Name, ss.Name, svc.ServiceType).Set(cast.ToFloat64(svc.ActiveTransactions))
+			P.labelTTLs.setTTL(lbvserviceCollection, P.nsInstance, svc.Name, ss.Name, svc.ServiceType)
 		}
 	case ServiceStats:
 		svcNames := P.vipMap.getMappings(P.nsInstance, ss.Name, P.logger)
@@ -210,7 +212,44 @@ func (P *Pool) promLBVServerStats(N NitroData) {
 				lbvsvrServiceCurrentLoad.WithLabelValues(P.nsInstance, ss.Name, svcName, ss.ServiceType).Set(cast.ToFloat64(ss.CurrentLoad))
 				lbvsvrServiceVirtualServerServiceHits.WithLabelValues(P.nsInstance, ss.Name, svcName, ss.ServiceType).Set(cast.ToFloat64(ss.ServiceHits))
 				lbvsvrServiceActiveTransactions.WithLabelValues(P.nsInstance, ss.Name, svcName, ss.ServiceType).Set(cast.ToFloat64(ss.ActiveTransactions))
+				P.labelTTLs.setTTL(lbvserviceCollection, P.nsInstance, ss.Name, svcName, ss.ServiceType)
 			}
 		}
 	}
+}
+
+var lbvserverStatCollection = gaugeCollection{
+	lbvserverAveCLTTLB,
+	lbvserverState,
+	lbvserverTotalRequests,
+	lbvserverTotalResponses,
+	lbvserverTotalRequestBytes,
+	lbvserverTotalResponseBytes,
+	lbvserverTotalClientTTLBTrans,
+	lbvserverActiveServices,
+	lbvserverTotalHits,
+	lbvserverTotalPktsRx,
+	lbvserverTotalPktsTx,
+	lbvserverSurgeCount,
+	lbvserverSvcSurgeCount,
+	lbvserverVSvrSurgeCount,
+}
+
+var lbvserviceCollection = gaugeCollection{
+	lbvsvrServiceThroughput,
+	lbvsvrServiceAvgTTFB,
+	lbvsvrServiceState,
+	lbvsvrServiceTotalRequests,
+	lbvsvrServiceTotalResponses,
+	lbvsvrServiceTotalRequestBytes,
+	lbvsvrServiceTotalResponseBytes,
+	lbvsvrServiceCurrentClientConns,
+	lbvsvrServiceCurrentServerConns,
+	lbvsvrServiceSurgeCount,
+	lbvsvrServiceServerEstablishedConnections,
+	lbvsvrServiceCurrentReusePool,
+	lbvsvrServiceMaxClients,
+	lbvsvrServiceCurrentLoad,
+	lbvsvrServiceVirtualServerServiceHits,
+	lbvsvrServiceActiveTransactions,
 }
